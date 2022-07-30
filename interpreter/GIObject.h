@@ -105,6 +105,12 @@ namespace GI {
 
     class FunctionObject : public GIObject {
     public:
+        FunctionObject(
+                std::vector<std::unique_ptr<Identifier>> parameters,
+                std::unique_ptr<BlockStatement> body,
+                std::shared_ptr<Environment> environment
+        ) : parameters{std::move(parameters)}, body{std::move(body)}, environment{std::move(environment)} {}
+
         ObjectType getType() override { return ObjectType::FUNCTION; }
 
         std::string inspect() override {
@@ -124,7 +130,7 @@ namespace GI {
 
         std::vector<std::unique_ptr<Identifier>> parameters;
         std::unique_ptr<BlockStatement> body;
-        std::unique_ptr<Environment> environment;
+        std::shared_ptr<Environment> environment;
     };
 }
 
