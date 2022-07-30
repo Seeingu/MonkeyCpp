@@ -13,7 +13,7 @@ namespace GI {
 
     class Environment {
     public:
-        Environment(std::unique_ptr<Environment> outer) : outer{std::move(outer)} {}
+        Environment(std::shared_ptr<Environment> outer) : outer{std::move(outer)} {}
 
         Environment() : outer{nullptr} {}
 
@@ -21,7 +21,7 @@ namespace GI {
 
         std::shared_ptr<GIObject> getValue(std::string name);
 
-        std::unique_ptr<Environment> outer;
+        std::shared_ptr<Environment> outer;
         std::map<std::string, std::shared_ptr<GIObject>> store;
 
     };

@@ -25,6 +25,7 @@ namespace GI {
     std::unique_ptr<Program> Parser::parseProgram() {
         std::vector<std::unique_ptr<Statement>> statements{};
         nextToken(); // skip start
+        nextToken();
 
         while (currentToken.type != TokenType::_EOF) {
             auto stmt = parseStatement();
@@ -38,7 +39,6 @@ namespace GI {
     }
 
     std::unique_ptr<Statement> Parser::parseStatement() {
-        nextToken();
         switch (currentToken.type) {
             case TokenType::LET:
                 return parseLetStatement();
@@ -167,7 +167,7 @@ namespace GI {
     std::unique_ptr<Expression> Parser::parseGroupedExpression() {
         nextToken();
         auto expr = parseExpression(Precedence::LOWEST);
-        if (peekToken.type == TokenType::RPAREN) {
+        if (expectPeekAndConsume(TokenType::RPAREN)) {
             return expr;
         }
         return nullptr;
@@ -175,7 +175,7 @@ namespace GI {
 
     std::unique_ptr<FunctionExpression> Parser::parseFunctionExpression() {
         auto token = currentToken;
-        if (expectPeekAndConsume(TokenType::LPAREN)) {
+        if (!expectPeekAndConsume(TokenType::LPAREN)) {
             return nullptr;
         }
 
@@ -192,11 +192,13 @@ namespace GI {
     std::unique_ptr<BlockStatement> Parser::parseBlockStatement() {
         auto token = currentToken;
         std::vector<std::unique_ptr<Statement>> statements;
+        nextToken(); // consume lbrace
         while (currentToken.type != TokenType::RBRACE && currentToken.type != TokenType::_EOF) {
             auto stmt = parseStatement();
             if (stmt != nullptr) {
                 statements.push_back(std::move(stmt));
             }
+            nextToken(); // consume rbrace
         }
         return std::make_unique<BlockStatement>(token, std::move(statements));
     }
@@ -241,7 +243,7 @@ namespace GI {
 
         auto consequence = parseBlockStatement();
         std::unique_ptr<BlockStatement> alternative = nullptr;
-        if (expectPeekAndConsume(TokenType::ELSE)) {
+        if (peekToken.type == TokenType::ELSE) {
             nextToken();
 
             if (!expectPeekAndConsume(TokenType::LBRACE)) {
@@ -260,7 +262,7 @@ namespace GI {
 
         auto returnValue = parseExpression(Precedence::LOWEST);
 
-        if (expectPeekAndConsume(TokenType::SEMICOLON)) {
+        if (peekToken.type == TokenType::SEMICOLON) {
             nextToken();
         }
         return std::make_unique<ReturnStatement>(token, std::move(returnValue));
@@ -292,6 +294,7 @@ namespace GI {
 
     std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expression> left) {
         auto token = currentToken;
+        nextToken();
         auto arguments = parseCallArguments();
         return std::make_unique<CallExpression>(token, std::move(left), std::move(arguments));
     }
@@ -299,11 +302,11 @@ namespace GI {
     std::vector<std::unique_ptr<Expression>> Parser::parseCallArguments() {
         std::vector<std::unique_ptr<Expression>> args;
 
-        if (currentToken.type == TokenType::RPAREN) {
+        if (peekToken.type == TokenType::RPAREN) {
             nextToken();
             return args;
         }
-        nextToken();
+        nextToken(); // consume lparen
         args.push_back(parseExpression(Precedence::LOWEST));
 
         while (peekToken.type == TokenType::COMMA) {
