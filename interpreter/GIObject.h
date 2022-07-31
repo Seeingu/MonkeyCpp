@@ -7,6 +7,7 @@
 
 #include <string>
 #include <sstream>
+#include <iterator>
 #include "Ast.h"
 #include "Environment.h"
 
