@@ -22,8 +22,13 @@ static void testExpression(std::unique_ptr<Expression> expression, bool value) {
 }
 
 static void testExpression(std::unique_ptr<Expression> expression, std::string value) {
-    auto identifier = dynamic_cast<Identifier *>(expression.get());
-    REQUIRE(identifier->value == value);
+    if (expression->getType() == GI::NodeType::Identifier) {
+        auto identifier = static_cast<Identifier *>(expression.get());
+        REQUIRE(identifier->value == value);
+    } else {
+        auto stringExpr = static_cast<StringExpression *>(expression.get());
+        REQUIRE(stringExpr->value == value);
+    }
 }
 
 
@@ -38,6 +43,7 @@ TEST_CASE("let statement", "[parser]") {
     std::vector<TestCase> cases{
             TestCase{"let x = 5;", "x", 5},
             TestCase{"let y = true;", "y", true},
+            TestCase{"let z = \"foo bar\";", "z", "foo bar"},
             TestCase{"let foobar = y;", "foobar", "y"}
     };
     for (auto &testCase: cases) {
@@ -66,9 +72,10 @@ TEST_CASE("return statement", "[parser]") {
         ExpressionValue value;
     };
     std::vector<TestCase> cases{
-            {"return 5;",      5},
-            {"return true;",   true},
-            {"return foobar;", "foobar"}
+            {"return 5;",          5},
+            {"return true;",       true},
+            {"return \"string\";", "string"},
+            {"return foobar;",     "foobar"}
     };
 
     for (auto &testCase: cases) {
@@ -96,9 +103,10 @@ TEST_CASE("expression statement", "[parser]") {
         ExpressionValue value;
     };
     std::vector<TestCase> cases{
-            {"foobar;", "foobar"},
-            {"5;",      5},
-            {"true;",   true}
+            {"foobar;",     "foobar"},
+            {"5;",          5},
+            {"true;",       true},
+            {"\"string\";", "string"}
     };
     for (auto &testCase: cases) {
         Lexer lexer{std::move(testCase.input)};
@@ -161,25 +169,27 @@ TEST_CASE("infix expression", "[parser]") {
         ExpressionValue right;
     };
     std::vector<TestCase> cases{
-            {"4 + 5;",            4,        "+",  5},
-            {"5 - 5;",            5,        "-",  5},
-            {"5 * 5;",            5,        "*",  5},
-            {"5 / 5;",            5,        "/",  5},
-            {"5 > 5;",            5,        ">",  5},
-            {"5 < 5;",            5,        "<",  5},
-            {"5 == 5;",           5,        "==", 5},
-            {"5 != 5;",           5,        "!=", 5},
-            {"foobar + barfoo;",  "foobar", "+",  "barfoo"},
-            {"foobar - barfoo;",  "foobar", "-",  "barfoo"},
-            {"foobar * barfoo;",  "foobar", "*",  "barfoo"},
-            {"foobar / barfoo;",  "foobar", "/",  "barfoo"},
-            {"foobar > barfoo;",  "foobar", ">",  "barfoo"},
-            {"foobar < barfoo;",  "foobar", "<",  "barfoo"},
-            {"foobar == barfoo;", "foobar", "==", "barfoo"},
-            {"foobar != barfoo;", "foobar", "!=", "barfoo"},
-            {"true == true",      true,     "==", true},
-            {"true != false",     true,     "!=", false},
-            {"false == false",    false,    "==", false},
+            {"4 + 5;",                  4,        "+",  5},
+            {"5 - 5;",                  5,        "-",  5},
+            {"5 * 5;",                  5,        "*",  5},
+            {"5 / 5;",                  5,        "/",  5},
+            {"5 > 5;",                  5,        ">",  5},
+            {"5 < 5;",                  5,        "<",  5},
+            {"5 == 5;",                 5,        "==", 5},
+            {"5 != 5;",                 5,        "!=", 5},
+            {"foobar + barfoo;",        "foobar", "+",  "barfoo"},
+            {"foobar - barfoo;",        "foobar", "-",  "barfoo"},
+            {"foobar * barfoo;",        "foobar", "*",  "barfoo"},
+            {"foobar / barfoo;",        "foobar", "/",  "barfoo"},
+            {"foobar > barfoo;",        "foobar", ">",  "barfoo"},
+            {"foobar < barfoo;",        "foobar", "<",  "barfoo"},
+            {"foobar == barfoo;",       "foobar", "==", "barfoo"},
+            {"foobar != barfoo;",       "foobar", "!=", "barfoo"},
+            {"true == true",            true,     "==", true},
+            {"true != false",           true,     "!=", false},
+            {"false == false",          false,    "==", false},
+            {R"("foobar" == "barfoo")", "foobar", "==", "barfoo"},
+            {R"("foobar" != "barfoo")", "foobar", "!=", "barfoo"},
     };
 
     for (auto &testCase: cases) {

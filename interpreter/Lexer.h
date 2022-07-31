@@ -28,11 +28,14 @@ namespace GI {
 
         void readChar();
 
+
         unsigned int peekChar();
 
         std::string readIdentifier();
 
         std::string readNumber();
+
+        std::string readString();
 
     };
 }

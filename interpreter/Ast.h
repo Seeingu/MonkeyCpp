@@ -15,6 +15,7 @@ namespace GI {
     enum class NodeType {
         Identifier,
         IntegerExpression,
+        StringExpression,
         PrefixExpression,
         BoolExpression,
         IfExpression,
@@ -68,6 +69,20 @@ namespace GI {
 
         Token token;
         int value;
+    };
+
+    class StringExpression : public Expression {
+    public:
+        StringExpression(Token token, std::string value) : token{std::move(token)}, value{value} {}
+
+        NodeType getType() override { return NodeType::StringExpression; }
+
+        std::string toString() override {
+            return value;
+        }
+
+        Token token;
+        std::string value;
     };
 
     class PrefixExpression : public Expression {

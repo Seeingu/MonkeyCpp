@@ -14,9 +14,9 @@ TEST_CASE("Ast", "[ast]") {
         std::vector<std::unique_ptr<Statement>> stmts{};
         auto stmt = std::make_unique<LetStatement>(Token(TokenType::LET, "let"),
                                                    std::make_unique<Identifier>(
-                                                           Token{TokenType::IDENT, "myVar"}, "myVar"),
+                                                           Token{TokenType::IDENTIFIER, "myVar"}, "myVar"),
                                                    std::make_unique<Identifier>(
-                                                           Token{TokenType::IDENT, "anotherVar"},
+                                                           Token{TokenType::IDENTIFIER, "anotherVar"},
                                                            "anotherVar"));
         stmts.push_back(std::move(stmt));
         auto program = Program{std::move(stmts)};

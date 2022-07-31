@@ -51,7 +51,7 @@ namespace GI {
 
     std::unique_ptr<LetStatement> Parser::parseLetStatement() {
         auto token = currentToken;
-        if (!expectPeekAndConsume(TokenType::IDENT)) {
+        if (!expectPeekAndConsume(TokenType::IDENTIFIER)) {
             return nullptr;
         }
         auto name = std::make_unique<Identifier>(currentToken, currentToken.literal);
@@ -86,11 +86,14 @@ namespace GI {
     std::unique_ptr<Expression> Parser::parseExpression(Precedence precedence) {
         std::unique_ptr<Expression> expression;
         switch (currentToken.type) {
-            case TokenType::IDENT:
+            case TokenType::IDENTIFIER:
                 expression = std::make_unique<Identifier>(currentToken, currentToken.literal);
                 break;
             case TokenType::INT:
                 expression = parseIntegerExpression();
+                break;
+            case TokenType::STRING:
+                expression = parseStringExpression();
                 break;
             case TokenType::BANG: // falls through
             case TokenType::MINUS:
@@ -150,6 +153,10 @@ namespace GI {
                                                            " as integer"));
             return nullptr;
         }
+    }
+
+    std::unique_ptr<StringExpression> Parser::parseStringExpression() {
+        return std::make_unique<StringExpression>(currentToken, currentToken.literal);
     }
 
     std::unique_ptr<PrefixExpression> Parser::parsePrefixExpression() {
