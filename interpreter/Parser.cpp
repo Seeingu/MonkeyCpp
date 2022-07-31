@@ -13,10 +13,6 @@ namespace GI {
         return message;
     }
 
-    std::unique_ptr<Identifier> Parser::parseIdentifier() {
-        return std::make_unique<Identifier>(Token{currentToken}, currentToken.literal);
-    }
-
     void Parser::nextToken() {
         currentToken = peekToken;
         peekToken = lexer->nextToken();
