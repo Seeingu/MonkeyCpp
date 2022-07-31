@@ -12,7 +12,7 @@
 namespace GI {
     std::unique_ptr<GIObject> eval(
             Node *node,
-            std::shared_ptr<Environment> environment
+            const std::shared_ptr<Environment> &environment
     );
 }
 

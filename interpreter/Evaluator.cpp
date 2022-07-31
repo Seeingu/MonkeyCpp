@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-static-cast-downcast"
 //
 // Created by seeu on 2022/7/15.
 //
@@ -5,7 +7,6 @@
 #include "Evaluator.h"
 #include <typeindex>
 #include <typeinfo>
-#include <format>
 #include <iostream>
 
 namespace GI {
@@ -29,7 +30,7 @@ namespace GI {
         return std::make_unique<BooleanObject>(value);
     }
 
-    std::unique_ptr<ErrorObject> makeErrorObject(std::string message) {
+    std::unique_ptr<ErrorObject> makeErrorObject(const std::string &message) {
         return std::make_unique<ErrorObject>(message);
     }
 
@@ -47,13 +48,12 @@ namespace GI {
     }
 
     std::unique_ptr<GIObject> evalProgram(Program *program,
-                                          std::shared_ptr<Environment> environment
+                                          const std::shared_ptr<Environment> &environment
     ) {
         std::unique_ptr<GIObject> result;
         for (auto &stmt: program->statements) {
             result = eval(stmt.get(), environment);
-            auto returnValueObject = dynamic_cast<ReturnValueObject *>(result.get());
-            if (returnValueObject != nullptr) {
+            if (auto returnValueObject = dynamic_cast<ReturnValueObject *>(result.get())) {
                 return std::move(returnValueObject->value);
             }
             auto errorObject = dynamic_cast<ErrorObject *>(result.get());
@@ -76,7 +76,7 @@ namespace GI {
         return std::make_unique<IntegerObject>(-integerObject->value);
     }
 
-    std::unique_ptr<GIObject> evalPrefixExpression(std::string prefixOperator, std::unique_ptr<GIObject> right) {
+    std::unique_ptr<GIObject> evalPrefixExpression(const std::string &prefixOperator, std::unique_ptr<GIObject> right) {
         if (prefixOperator == "!") {
             return evalBangOperatorExpression(std::move(right));
         } else if (prefixOperator == "-") {
@@ -87,8 +87,9 @@ namespace GI {
         }
     }
 
-    std::unique_ptr<GIObject> evalStringInfixExpression(std::string infixOperator, std::unique_ptr<GIObject> left,
-                                                        std::unique_ptr<GIObject> right) {
+    std::unique_ptr<GIObject>
+    evalStringInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
+                              std::unique_ptr<GIObject> right) {
 
         auto leftString = static_cast<StringObject *>(left.get());
         auto rightString = static_cast<StringObject *>(right.get());
@@ -104,8 +105,9 @@ namespace GI {
         }
     }
 
-    std::unique_ptr<GIObject> evalIntegerInfixExpression(std::string infixOperator, std::unique_ptr<GIObject> left,
-                                                         std::unique_ptr<GIObject> right) {
+    std::unique_ptr<GIObject>
+    evalIntegerInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
+                               std::unique_ptr<GIObject> right) {
         auto leftInt = static_cast<IntegerObject *>(left.get());
         auto rightInt = static_cast<IntegerObject *>(right.get());
 
@@ -136,7 +138,8 @@ namespace GI {
     }
 
     std::unique_ptr<GIObject>
-    evalInfixExpression(std::string infixOperator, std::unique_ptr<GIObject> left, std::unique_ptr<GIObject> right) {
+    evalInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
+                        std::unique_ptr<GIObject> right) {
         if (left->getType() != right->getType()) {
             return std::make_unique<ErrorObject>(
                     "type mismatch: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
@@ -150,18 +153,20 @@ namespace GI {
                 if (infixOperator == "==") {
                     return makeBoolObject(static_cast<BooleanObject *>(left.get())->value ==
                                           static_cast<BooleanObject *>(right.get())->value);
-                }
-                if (infixOperator == "!=") {
+                } else if (infixOperator == "!=") {
                     return makeBoolObject(static_cast<BooleanObject *>(left.get())->value !=
                                           static_cast<BooleanObject *>(right.get())->value);
+                } else {
+                    break;
                 }
             }
             case ObjectType::_NULL: {
                 if (infixOperator == "==") {
                     return makeBoolObject(true);
-                }
-                if (infixOperator == "!=") {
+                } else if (infixOperator == "!=") {
                     return makeBoolObject(false);
+                } else {
+                    break;
                 }
             }
             case ObjectType::STRING:
@@ -172,7 +177,7 @@ namespace GI {
                 objectTypeNameMapping.map[right->getType()]);
     }
 
-    std::unique_ptr<GIObject> evalIfExpression(IfExpression *node, std::shared_ptr<Environment> environment) {
+    std::unique_ptr<GIObject> evalIfExpression(IfExpression *node, const std::shared_ptr<Environment> &environment) {
         auto condition = eval(node->condition.get(), environment);
         if (isError(condition.get())) {
             return condition;
@@ -184,6 +189,7 @@ namespace GI {
         }
         return nullptr;
     }
+
 
     std::unique_ptr<GIObject> evalIdentifierExpression(Identifier *node, std::shared_ptr<Environment> environment) {
         auto value = environment->getValue(node->value);
@@ -218,7 +224,7 @@ namespace GI {
     }
 
     std::vector<std::unique_ptr<GIObject>>
-    evalFunctionArguments(CallExpression *node, std::shared_ptr<Environment> environment) {
+    evalFunctionArguments(CallExpression *node, const std::shared_ptr<Environment> &environment) {
         std::vector<std::unique_ptr<GIObject>> args{};
         for (auto &arg: node->arguments) {
             auto argObject = eval(arg.get(), environment);
@@ -251,7 +257,7 @@ namespace GI {
             return result;
         };
         // iife
-        if (node->name.get()->getType() != NodeType::Identifier) {
+        if (node->name->getType() != NodeType::Identifier) {
             auto object = eval(node->name.get(), environment);
             if (isError(object.get())) {
                 return object;
@@ -279,7 +285,7 @@ namespace GI {
 
     }
 
-    std::unique_ptr<GIObject> evalExpression(Node *node, std::shared_ptr<Environment> environment) {
+    std::unique_ptr<GIObject> evalExpression(Node *node, const std::shared_ptr<Environment> &environment) {
         switch (node->getType()) {
             case NodeType::IntegerExpression:
                 return std::make_unique<IntegerObject>(static_cast<IntegerExpression *>(node)->value);
@@ -325,7 +331,7 @@ namespace GI {
 
     std::unique_ptr<GIObject> eval(
             Node *node,
-            std::shared_ptr<Environment> environment
+            const std::shared_ptr<Environment> &environment
     ) {
         switch (node->getType()) {
             case NodeType::Program:
@@ -348,7 +354,7 @@ namespace GI {
                 if (isError(value.get())) {
                     return value;
                 }
-                environment.get()->setValue(letStatement->name->value, std::move(value));
+                environment->setValue(letStatement->name->value, std::move(value));
                 return nullptr;
             }
             default:
@@ -358,3 +364,5 @@ namespace GI {
 
     }
 }
+
+#pragma clang diagnostic pop

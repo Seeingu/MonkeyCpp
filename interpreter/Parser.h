@@ -25,7 +25,7 @@ namespace GI {
 
     class ParserError {
     public:
-        ParserError(Token token, std::string message) : token{token}, message{message} {};
+        ParserError(Token token, std::string message) : token{std::move(token)}, message{std::move(message)} {};
 
         std::string toString();
 
@@ -37,7 +37,7 @@ namespace GI {
 
     class Parser {
     public:
-        Parser(Lexer *lexer)
+        explicit Parser(Lexer *lexer)
                 : lexer(lexer) {
 
             precedences[TokenType::EQ] = Precedence::EQUALS;
@@ -56,8 +56,6 @@ namespace GI {
     private:
 
         std::unique_ptr<Statement> parseStatement();
-
-        std::unique_ptr<Identifier> parseIdentifier();
 
         std::unique_ptr<LetStatement> parseLetStatement();
 

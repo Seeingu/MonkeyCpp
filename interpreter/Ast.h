@@ -7,6 +7,7 @@
 
 
 #include <string>
+#include <utility>
 #include <vector>
 #include <memory>
 #include "Token.h"
@@ -40,14 +41,14 @@ namespace GI {
 
     class Expression : public Node {
     public:
-        virtual std::string toString() = 0;
+        std::string toString() override = 0;
 
-        virtual NodeType getType() = 0;
+        NodeType getType() override = 0;
     };
 
     class Identifier : public Expression {
     public:
-        Identifier(Token token, std::string value) : token{token}, value{value} {};
+        Identifier(Token token, std::string value) : token{std::move(token)}, value{value} {};
 
         NodeType getType() override { return NodeType::Identifier; };
 
@@ -63,7 +64,7 @@ namespace GI {
 
         NodeType getType() override { return NodeType::IntegerExpression; };
 
-        std::string toString() {
+        std::string toString() override {
             return token.literal;
         }
 
@@ -73,7 +74,7 @@ namespace GI {
 
     class StringExpression : public Expression {
     public:
-        StringExpression(Token token, std::string value) : token{std::move(token)}, value{value} {}
+        StringExpression(Token token, std::string value) : token{std::move(token)}, value{std::move(value)} {}
 
         NodeType getType() override { return NodeType::StringExpression; }
 
@@ -88,7 +89,8 @@ namespace GI {
     class PrefixExpression : public Expression {
     public:
         PrefixExpression(Token token, std::string prefixOperator, std::unique_ptr<Expression> rightExpression) : token{
-                token}, prefixOperator{prefixOperator}, rightExpression{std::move(rightExpression)} {};
+                std::move(
+                        token)}, prefixOperator{prefixOperator}, rightExpression{std::move(rightExpression)} {};
 
         std::string toString() override;
 
@@ -101,7 +103,7 @@ namespace GI {
 
     class BoolExpression : public Expression {
     public:
-        BoolExpression(Token token, bool value) : token(token), value{value} {}
+        BoolExpression(Token token, bool value) : token(std::move(token)), value{value} {}
 
         std::string toString() override {
             return token.literal;
@@ -124,7 +126,7 @@ namespace GI {
                      std::unique_ptr<Expression> condition,
                      std::unique_ptr<BlockStatement> consequences,
                      std::unique_ptr<BlockStatement> alternative
-        ) : token{token}, condition{std::move(condition)}, consequence{std::move(consequences)},
+        ) : token{std::move(token)}, condition{std::move(condition)}, consequence{std::move(consequences)},
             alternative{std::move(alternative)} {}
 
         std::string toString() override;
@@ -142,7 +144,7 @@ namespace GI {
         FunctionExpression(Token token,
                            std::vector<std::unique_ptr<Identifier>> parameters,
                            std::unique_ptr<BlockStatement> body
-        ) : token{token}, parameters{std::move(parameters)}, body{std::move(body)} {}
+        ) : token{std::move(token)}, parameters{std::move(parameters)}, body{std::move(body)} {}
 
         NodeType getType() override { return NodeType::FunctionExpression; };
 
@@ -155,11 +157,11 @@ namespace GI {
 
     class Statement : public Node {
     public:
-        virtual std::string toString() = 0;
+        std::string toString() override = 0;
 
-        virtual NodeType getType() = 0;
+        NodeType getType() override = 0;
 
-        virtual ~Statement() = default;
+        ~Statement() override = default;
     };
 
     class LetStatement : public Statement {
@@ -182,7 +184,7 @@ namespace GI {
     public:
         BlockStatement(Token token,
                        std::vector<std::unique_ptr<Statement>> statements) :
-                token{token},
+                token{std::move(token)},
                 statements{std::move(statements)} {}
 
         NodeType getType() override { return NodeType::BlockStatement; };
@@ -224,12 +226,12 @@ namespace GI {
     class InfixExpression : public Expression {
     public:
         InfixExpression(Token token,
-
                         std::unique_ptr<Expression> leftExpression,
                         std::unique_ptr<Expression> rightExpression,
                         std::string infixOperator
-        ) : token(token), leftExpression{std::move(leftExpression)}, rightExpression{std::move(rightExpression)},
-            infixOperator{infixOperator} {};
+        ) : token(std::move(token)), leftExpression{std::move(leftExpression)},
+            rightExpression{std::move(rightExpression)},
+            infixOperator{std::move(infixOperator)} {};
 
         NodeType getType() override { return NodeType::InfixExpression; };
 
@@ -246,7 +248,7 @@ namespace GI {
         CallExpression(Token token,
                        std::unique_ptr<Expression> name,
                        std::vector<std::unique_ptr<Expression>> arguments
-        ) : token{token}, name{std::move(name)}, arguments{std::move(arguments)} {};
+        ) : token{std::move(token)}, name{std::move(name)}, arguments{std::move(arguments)} {};
 
         NodeType getType() override { return NodeType::CallExpression; };
 
