@@ -77,6 +77,8 @@ namespace GI {
 
         std::unique_ptr<IntegerExpression> parseIntegerExpression();
 
+        std::unique_ptr<StringExpression> parseStringExpression();
+
         std::unique_ptr<PrefixExpression> parsePrefixExpression();
 
         std::unique_ptr<BoolExpression> parseBoolExpression();

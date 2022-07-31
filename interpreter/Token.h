@@ -18,8 +18,9 @@ namespace GI {
         _EOF,
 
 // Identifiers + literals
-        IDENT, // add, foobar, x, y, ...
-        INT,   // 1343456
+        IDENTIFIER, // add, foobar, x, y, ...
+        INT,
+        STRING,
 
 // Operators
         ASSIGN,
@@ -68,8 +69,9 @@ namespace GI {
 
             TOKEN_TYPE_MAP(ILLEGAL);
             TOKEN_TYPE_MAP(_EOF);
-            TOKEN_TYPE_MAP(IDENT);
+            TOKEN_TYPE_MAP(IDENTIFIER);
             TOKEN_TYPE_MAP(INT);
+            TOKEN_TYPE_MAP(STRING);
             TOKEN_TYPE_MAP(ASSIGN);
             TOKEN_TYPE_MAP(PLUS);
             TOKEN_TYPE_MAP(MINUS);

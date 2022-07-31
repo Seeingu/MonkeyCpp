@@ -135,13 +135,15 @@ namespace GI {
                 return {TokenType::LPAREN, charToString(currentChar)};
             case ')':
                 return {TokenType::RPAREN, charToString(currentChar)};
+            case '"':
+                return {TokenType::STRING, readString()};
             case 0:
                 return {TokenType::_EOF, ""};
             default:
                 if (isLetter(currentChar)) {
                     auto literal = readIdentifier();
                     auto c = keywordsMap.size();
-                    auto type = keywordsMap.contains(literal) ? keywordsMap[literal] : TokenType::IDENT;
+                    auto type = keywordsMap.contains(literal) ? keywordsMap[literal] : TokenType::IDENTIFIER;
                     return {type, literal};
                 } else if (isDigit(currentChar)) {
                     return {TokenType::INT, readNumber()};
@@ -149,5 +151,16 @@ namespace GI {
                     return {TokenType::ILLEGAL, charToString(currentChar)};
                 }
         }
+    }
+
+    std::string Lexer::readString() {
+        auto pos = position + 1;
+        while (true) {
+            readChar();
+            if (currentChar == '"' || currentChar == 0) {
+                break;
+            }
+        }
+        return input.substr(pos, position - pos);
     }
 }

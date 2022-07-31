@@ -20,6 +20,8 @@ namespace GI {
         ERROR,
         INTEGER,
         BOOLEAN,
+        STRING,
+        BUILTIN,
         RETURN_VALUE,
         FUNCTION
     };
@@ -31,9 +33,11 @@ namespace GI {
             OBJECT_TYPE_MAP(_NULL);
             OBJECT_TYPE_MAP(ERROR);
             OBJECT_TYPE_MAP(INTEGER);
+            OBJECT_TYPE_MAP(STRING);
             OBJECT_TYPE_MAP(BOOLEAN);
             OBJECT_TYPE_MAP(RETURN_VALUE);
             OBJECT_TYPE_MAP(FUNCTION);
+            OBJECT_TYPE_MAP(BUILTIN);
         }
 
         std::map<ObjectType, std::string> map;
@@ -61,6 +65,17 @@ namespace GI {
         }
 
         int value;
+    };
+
+    class StringObject : public GIObject {
+    public:
+        StringObject(std::string value) : value{value} {}
+
+        ObjectType getType() override { return ObjectType::STRING; }
+
+        std::string inspect() override { return value; }
+
+        std::string value;
     };
 
     class BooleanObject : public GIObject {
@@ -112,6 +127,36 @@ namespace GI {
         ) : parameters{std::move(parameters)}, body{std::move(body)}, environment{std::move(environment)} {}
 
         ObjectType getType() override { return ObjectType::FUNCTION; }
+
+        std::string inspect() override {
+            std::stringstream ss;
+
+            std::vector<std::string> params;
+            for (auto &param: parameters) {
+                params.push_back(param->toString());
+            }
+            std::stringstream paramsStream;
+            std::copy(params.begin(), params.end() - 1, std::ostream_iterator<std::string>(paramsStream, ","));
+            ss << "(" << paramsStream.str() << ")";
+            ss << " {" << std::endl;
+            ss << body->toString() << std::endl << "}";
+            return ss.str();
+        }
+
+        std::vector<std::unique_ptr<Identifier>> parameters;
+        std::unique_ptr<BlockStatement> body;
+        std::shared_ptr<Environment> environment;
+    };
+
+    class BuiltinFunctionObject : public GIObject {
+    public:
+        BuiltinFunctionObject(
+                std::vector<std::unique_ptr<Identifier>> parameters,
+                std::unique_ptr<BlockStatement> body,
+                std::shared_ptr<Environment> environment
+        ) : parameters{std::move(parameters)}, body{std::move(body)}, environment{std::move(environment)} {}
+
+        ObjectType getType() override { return ObjectType::BUILTIN; }
 
         std::string inspect() override {
             std::stringstream ss;

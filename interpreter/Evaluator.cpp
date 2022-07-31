@@ -87,6 +87,23 @@ namespace GI {
         }
     }
 
+    std::unique_ptr<GIObject> evalStringInfixExpression(std::string infixOperator, std::unique_ptr<GIObject> left,
+                                                        std::unique_ptr<GIObject> right) {
+
+        auto leftString = static_cast<StringObject *>(left.get());
+        auto rightString = static_cast<StringObject *>(right.get());
+        if (infixOperator == "+") {
+            return std::make_unique<StringObject>(leftString->value + rightString->value);
+        } else {
+            std::stringstream ss;
+            ss << "unknown infix operator with string: ";
+            ss << leftString->value << " ";
+            ss << infixOperator << " ";
+            ss << rightString->value;
+            return makeErrorObject(ss.str());
+        }
+    }
+
     std::unique_ptr<GIObject> evalIntegerInfixExpression(std::string infixOperator, std::unique_ptr<GIObject> left,
                                                          std::unique_ptr<GIObject> right) {
         auto leftInt = static_cast<IntegerObject *>(left.get());
@@ -125,29 +142,31 @@ namespace GI {
                     "type mismatch: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
                     objectTypeNameMapping.map[right->getType()]);
         }
-        if (left->getType() == ObjectType::INTEGER) {
-            return evalIntegerInfixExpression(infixOperator, std::move(left), std::move(right));
-        }
-        if (left->getType() == ObjectType::BOOLEAN) {
-            if (infixOperator == "==") {
-                return makeBoolObject(static_cast<BooleanObject *>(left.get())->value ==
-                                      static_cast<BooleanObject *>(right.get())->value);
-            }
-            if (infixOperator == "!=") {
-                return makeBoolObject(static_cast<BooleanObject *>(left.get())->value !=
-                                      static_cast<BooleanObject *>(right.get())->value);
-            }
-        }
+        switch (left->getType()) {
+            case ObjectType::INTEGER:
+                return evalIntegerInfixExpression(infixOperator, std::move(left), std::move(right));
 
-        if (left->getType() == ObjectType::_NULL) {
-            if (infixOperator == "==") {
-                return makeBoolObject(true);
+            case ObjectType::BOOLEAN: {
+                if (infixOperator == "==") {
+                    return makeBoolObject(static_cast<BooleanObject *>(left.get())->value ==
+                                          static_cast<BooleanObject *>(right.get())->value);
+                }
+                if (infixOperator == "!=") {
+                    return makeBoolObject(static_cast<BooleanObject *>(left.get())->value !=
+                                          static_cast<BooleanObject *>(right.get())->value);
+                }
             }
-            if (infixOperator == "!=") {
-                return makeBoolObject(false);
+            case ObjectType::_NULL: {
+                if (infixOperator == "==") {
+                    return makeBoolObject(true);
+                }
+                if (infixOperator == "!=") {
+                    return makeBoolObject(false);
+                }
             }
+            case ObjectType::STRING:
+                return evalStringInfixExpression(infixOperator, std::move(left), std::move(right));
         }
-
         return makeErrorObject(
                 "unknown operator: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
                 objectTypeNameMapping.map[right->getType()]);
@@ -176,6 +195,8 @@ namespace GI {
                 return std::make_unique<IntegerObject>(static_cast<IntegerObject *>(value.get())->value);
             case ObjectType::BOOLEAN:
                 return std::make_unique<BooleanObject>(static_cast<BooleanObject *>(value.get())->value);
+            case ObjectType::STRING:
+                return std::make_unique<StringObject>(static_cast<StringObject *>(value.get())->value);
             case ObjectType::_NULL:
                 return std::make_unique<NullObject>();
         }
@@ -183,18 +204,37 @@ namespace GI {
                 "unsupported type get from env " + objectTypeNameMapping.map[value->getType()]);
     }
 
-    std::unique_ptr<GIObject> evalCallExpression(CallExpression *node, std::shared_ptr<Environment> environment) {
-        auto evalFunction = [&](
-                FunctionObject *functionObject) -> std::unique_ptr<GIObject> { // NOLINT(misc-no-recursion)
-            std::vector<std::unique_ptr<GIObject>> args{};
-            for (auto &arg: node->arguments) {
-                auto argObject = eval(arg.get(), environment);
-                if (isError(argObject.get())) {
-                    args.push_back(std::move(argObject));
-                    break;
-                }
+    std::unique_ptr<GIObject> evalBuiltinLen(std::vector<std::unique_ptr<GIObject>> arguments) {
+        if (arguments.size() != 1) {
+            return makeErrorObject("len() arguments size not match: " + std::to_string(arguments.size()));
+        }
+        auto arg = arguments[0].get();
+        if (arg->getType() == ObjectType::STRING) {
+            auto stringObject = static_cast<StringObject *>(arg);
+            return std::make_unique<IntegerObject>(stringObject->value.size());
+        } else {
+            return makeErrorObject("len() argument type is not support: " + objectTypeNameMapping.map[arg->getType()]);
+        }
+    }
+
+    std::vector<std::unique_ptr<GIObject>>
+    evalFunctionArguments(CallExpression *node, std::shared_ptr<Environment> environment) {
+        std::vector<std::unique_ptr<GIObject>> args{};
+        for (auto &arg: node->arguments) {
+            auto argObject = eval(arg.get(), environment);
+            if (isError(argObject.get())) {
                 args.push_back(std::move(argObject));
+                break;
             }
+            args.push_back(std::move(argObject));
+        }
+        return args;
+    }
+
+    std::unique_ptr<GIObject> evalCallExpression(CallExpression *node, std::shared_ptr<Environment> environment) {
+        auto evalFunction = [&]( // NOLINT(misc-no-recursion)
+                FunctionObject *functionObject) -> std::unique_ptr<GIObject> {
+            auto args = evalFunctionArguments(node, environment);
 
             Environment env{functionObject->environment};
             if (functionObject->parameters.size() != args.size()) {
@@ -210,6 +250,7 @@ namespace GI {
             }
             return result;
         };
+        // iife
         if (node->name.get()->getType() != NodeType::Identifier) {
             auto object = eval(node->name.get(), environment);
             if (isError(object.get())) {
@@ -223,6 +264,10 @@ namespace GI {
             auto identifier = static_cast<Identifier *>(node->name.get());
             auto fun = environment->getValue(identifier->value);
             if (fun == nullptr) {
+                if (identifier->value == "len") {
+                    auto args = evalFunctionArguments(node, environment);
+                    return evalBuiltinLen(std::move(args));
+                }
                 return makeErrorObject("identifier not found: " + identifier->value);
             }
             if (fun->getType() != ObjectType::FUNCTION) {
@@ -240,6 +285,8 @@ namespace GI {
                 return std::make_unique<IntegerObject>(static_cast<IntegerExpression *>(node)->value);
             case NodeType::BoolExpression:
                 return std::make_unique<BooleanObject>(static_cast<BoolExpression *>(node)->value);
+            case NodeType::StringExpression:
+                return std::make_unique<StringObject>(static_cast<StringExpression *>(node)->value);
             case NodeType::PrefixExpression: {
                 auto prefixExpression = static_cast<PrefixExpression *>(node);
                 auto right = eval(prefixExpression->rightExpression.get(), environment);

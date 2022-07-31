@@ -12,6 +12,17 @@
 
 using namespace GI;
 
+template<typename T, typename E>
+void testExpression(std::string input, E expected) {
+    Lexer lexer{input};
+    Parser parser{&lexer};
+    auto program = parser.parseProgram();
+    auto env = std::make_shared<Environment>();
+    auto result = eval(program.get(), env);
+    auto object = dynamic_cast<T *>(result.get());
+    REQUIRE(object->value == expected);
+}
+
 TEST_CASE("eval int expression", "[evaluator]") {
     struct TestCase {
         std::string input;
@@ -35,13 +46,7 @@ TEST_CASE("eval int expression", "[evaluator]") {
             {"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
     };
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto integerObject = dynamic_cast<IntegerObject *>(result.get());
-        REQUIRE(integerObject->value == testCase.expected);
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
     }
 }
 
@@ -74,13 +79,22 @@ TEST_CASE("eval boolean expression", "[evaluator]") {
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto boolObject = dynamic_cast<BooleanObject *>(result.get());
-        REQUIRE(boolObject->value == testCase.expected);
+        testExpression<BooleanObject>(testCase.input, testCase.expected);
+    }
+}
+
+
+TEST_CASE("eval string expression", "[evaluator]") {
+    struct TestCase {
+        std::string input;
+        std::string expected;
+    };
+    std::vector<TestCase> cases = {
+            {"\"value\"",             "value"},
+            {R"("Hello " + "World")", "Hello World"},
+    };
+    for (auto &testCase: cases) {
+        testExpression<StringObject>(testCase.input, testCase.expected);
     }
 }
 
@@ -91,23 +105,20 @@ TEST_CASE("bang expression", "[evaluator]") {
     };
 
     std::vector<TestCase> cases = {
-            {"!true",   false},
-            {"!false",  true},
-            {"!5",      false},
-            {"!!true",  true},
+            {"!true", false},
+            {"!false", true},
+            {"!0", false},
+            {"!!true", true},
             {"!!false", false},
-            {"!!5",     true},
+            {"!!0", true},
+            {"!\"\"", false},
+            {"!!\"\"", true},
+            {"!\"string\"", false},
+            {"!!\"string\"", true}
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto boolObject = dynamic_cast<BooleanObject *>(result.get());
-        REQUIRE(boolObject->value == testCase.expected);
+        testExpression<BooleanObject>(testCase.input, testCase.expected);
     }
 }
 
@@ -190,14 +201,7 @@ TEST_CASE("return statement", "[evaluator]") {
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto intObject = dynamic_cast<IntegerObject *>(result.get());
-        REQUIRE(intObject->value == testCase.expected);
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
     }
 }
 
@@ -276,14 +280,7 @@ TEST_CASE("let statement", "[evaluator]") {
             {"let a = 5; let b = a; let c = a + b + 5; c;", 15},
     };
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto intObject = dynamic_cast<IntegerObject *>(result.get());
-        REQUIRE(intObject->value == testCase.expected);
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
     }
 }
 
@@ -302,15 +299,10 @@ TEST_CASE("function", "[evaluator]") {
             {"fn(x) { x; }(5)",                                       5},
     };
     for (auto &testCase: cases) {
-        Lexer lexer{testCase.input};
-        Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
-        auto program = parser.parseProgram();
-        auto env = std::make_shared<Environment>();
-        auto result = eval(program.get(), env);
-        auto intObject = dynamic_cast<IntegerObject *>(result.get());
-        REQUIRE(intObject->value == testCase.expected);
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
     }
+
+    testExpression<StringObject>("fn(x) { x; }(\"hello\")", "hello");
 }
 
 TEST_CASE("enclosing env", "[evaluator]") {
@@ -326,11 +318,22 @@ TEST_CASE("enclosing env", "[evaluator]") {
     };
     ourFunction(20) + first + second;
     )""";
-    Lexer lexer{input};
-    Parser parser{&lexer};
-    auto program = parser.parseProgram();
-    auto env = std::make_shared<Environment>();
-    auto result = eval(program.get(), env);
-    auto intObject = dynamic_cast<IntegerObject *>(result.get());
-    REQUIRE(intObject->value == 70);
+
+    testExpression<IntegerObject>(input, 70);
+}
+
+TEST_CASE("builtin functions", "[evaluator]") {
+    struct TestCase {
+        std::string input;
+        int expected;
+    };
+
+    std::vector<TestCase> cases = {
+            {"len(\"hello\")",       5},
+            {"len(\"hello world\")", 11},
+            {"len(\"\")",            0},
+    };
+    for (auto &testCase: cases) {
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
+    }
 }
