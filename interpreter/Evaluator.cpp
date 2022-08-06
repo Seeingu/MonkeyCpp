@@ -1,5 +1,7 @@
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-pro-type-static-cast-downcast"
+#endif
 //
 // Created by seeu on 2022/7/15.
 //
@@ -34,8 +36,9 @@ namespace GI {
         return std::make_unique<ErrorObject>(message);
     }
 
-    std::unique_ptr<GIObject> evalBlockStatement(BlockStatement *block, std::shared_ptr<Environment> environment) {
-        std::unique_ptr<GIObject> result;
+    std::shared_ptr<GIObject>
+    evalBlockStatement(BlockStatement *block, const std::shared_ptr<Environment> &environment) {
+        std::shared_ptr<GIObject> result;
         for (auto &stmt: block->statements) {
             result = eval(stmt.get(), environment);
             if (result != nullptr) {
@@ -47,10 +50,10 @@ namespace GI {
         return result;
     }
 
-    std::unique_ptr<GIObject> evalProgram(Program *program,
+    std::shared_ptr<GIObject> evalProgram(Program *program,
                                           const std::shared_ptr<Environment> &environment
     ) {
-        std::unique_ptr<GIObject> result;
+        std::shared_ptr<GIObject> result;
         for (auto &stmt: program->statements) {
             result = eval(stmt.get(), environment);
             if (auto returnValueObject = dynamic_cast<ReturnValueObject *>(result.get())) {
@@ -64,11 +67,11 @@ namespace GI {
         return result;
     }
 
-    std::unique_ptr<GIObject> evalBangOperatorExpression(std::unique_ptr<GIObject> object) {
+    std::unique_ptr<GIObject> evalBangOperatorExpression(const std::shared_ptr<GIObject> &object) {
         return std::make_unique<BooleanObject>(!isTruthy(object.get()));
     }
 
-    std::unique_ptr<GIObject> evalMinusPrefixOperatorExpression(std::unique_ptr<GIObject> object) {
+    std::unique_ptr<GIObject> evalMinusPrefixOperatorExpression(const std::shared_ptr<GIObject> &object) {
         if (object->getType() != ObjectType::INTEGER) {
             return std::make_unique<ErrorObject>("unknown operator: -" + objectTypeNameMapping.map[object->getType()]);
         }
@@ -76,11 +79,12 @@ namespace GI {
         return std::make_unique<IntegerObject>(-integerObject->value);
     }
 
-    std::unique_ptr<GIObject> evalPrefixExpression(const std::string &prefixOperator, std::unique_ptr<GIObject> right) {
+    std::unique_ptr<GIObject>
+    evalPrefixExpression(const std::string &prefixOperator, const std::shared_ptr<GIObject> &right) {
         if (prefixOperator == "!") {
-            return evalBangOperatorExpression(std::move(right));
+            return evalBangOperatorExpression(right);
         } else if (prefixOperator == "-") {
-            return evalMinusPrefixOperatorExpression(std::move(right));
+            return evalMinusPrefixOperatorExpression(right);
         } else {
             return std::make_unique<ErrorObject>(
                     "unknown operator: " + prefixOperator + objectTypeNameMapping.map[right->getType()]);
@@ -88,8 +92,8 @@ namespace GI {
     }
 
     std::unique_ptr<GIObject>
-    evalStringInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
-                              std::unique_ptr<GIObject> right) {
+    evalStringInfixExpression(const std::string &infixOperator, const std::shared_ptr<GIObject> &left,
+                              const std::shared_ptr<GIObject> &right) {
 
         auto leftString = static_cast<StringObject *>(left.get());
         auto rightString = static_cast<StringObject *>(right.get());
@@ -105,9 +109,9 @@ namespace GI {
         }
     }
 
-    std::unique_ptr<GIObject>
-    evalIntegerInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
-                               std::unique_ptr<GIObject> right) {
+    std::shared_ptr<GIObject>
+    evalIntegerInfixExpression(const std::string &infixOperator, const std::shared_ptr<GIObject> &left,
+                               const std::shared_ptr<GIObject> &right) {
         auto leftInt = static_cast<IntegerObject *>(left.get());
         auto rightInt = static_cast<IntegerObject *>(right.get());
 
@@ -137,9 +141,9 @@ namespace GI {
         }
     }
 
-    std::unique_ptr<GIObject>
-    evalInfixExpression(const std::string &infixOperator, std::unique_ptr<GIObject> left,
-                        std::unique_ptr<GIObject> right) {
+    std::shared_ptr<GIObject>
+    evalInfixExpression(const std::string &infixOperator, const std::shared_ptr<GIObject> &left,
+                        const std::shared_ptr<GIObject> &right) {
         if (left->getType() != right->getType()) {
             return std::make_unique<ErrorObject>(
                     "type mismatch: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
@@ -147,7 +151,7 @@ namespace GI {
         }
         switch (left->getType()) {
             case ObjectType::INTEGER:
-                return evalIntegerInfixExpression(infixOperator, std::move(left), std::move(right));
+                return evalIntegerInfixExpression(infixOperator, left, right);
 
             case ObjectType::BOOLEAN: {
                 if (infixOperator == "==") {
@@ -170,14 +174,17 @@ namespace GI {
                 }
             }
             case ObjectType::STRING:
-                return evalStringInfixExpression(infixOperator, std::move(left), std::move(right));
+                return evalStringInfixExpression(infixOperator, left, right);
+            default:
+                // fallback
+                break;
         }
         return makeErrorObject(
                 "unknown operator: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
                 objectTypeNameMapping.map[right->getType()]);
     }
 
-    std::unique_ptr<GIObject> evalIfExpression(IfExpression *node, const std::shared_ptr<Environment> &environment) {
+    std::shared_ptr<GIObject> evalIfExpression(IfExpression *node, const std::shared_ptr<Environment> &environment) {
         auto condition = eval(node->condition.get(), environment);
         if (isError(condition.get())) {
             return condition;
@@ -191,26 +198,16 @@ namespace GI {
     }
 
 
-    std::unique_ptr<GIObject> evalIdentifierExpression(Identifier *node, std::shared_ptr<Environment> environment) {
+    std::shared_ptr<GIObject>
+    evalIdentifierExpression(Identifier *node, const std::shared_ptr<Environment> &environment) {
         auto value = environment->getValue(node->value);
         if (value == nullptr) {
             return makeErrorObject("identifier not found: " + node->value);
         }
-        switch (value->getType()) {
-            case ObjectType::INTEGER:
-                return std::make_unique<IntegerObject>(static_cast<IntegerObject *>(value.get())->value);
-            case ObjectType::BOOLEAN:
-                return std::make_unique<BooleanObject>(static_cast<BooleanObject *>(value.get())->value);
-            case ObjectType::STRING:
-                return std::make_unique<StringObject>(static_cast<StringObject *>(value.get())->value);
-            case ObjectType::_NULL:
-                return std::make_unique<NullObject>();
-        }
-        return makeErrorObject(
-                "unsupported type get from env " + objectTypeNameMapping.map[value->getType()]);
+        return value;
     }
 
-    std::unique_ptr<GIObject> evalBuiltinLen(std::vector<std::unique_ptr<GIObject>> arguments) {
+    std::unique_ptr<GIObject> evalBuiltinLen(std::vector<std::shared_ptr<GIObject>> arguments) {
         if (arguments.size() != 1) {
             return makeErrorObject("len() arguments size not match: " + std::to_string(arguments.size()));
         }
@@ -223,9 +220,9 @@ namespace GI {
         }
     }
 
-    std::vector<std::unique_ptr<GIObject>>
+    std::vector<std::shared_ptr<GIObject>>
     evalFunctionArguments(CallExpression *node, const std::shared_ptr<Environment> &environment) {
-        std::vector<std::unique_ptr<GIObject>> args{};
+        std::vector<std::shared_ptr<GIObject>> args{};
         for (auto &arg: node->arguments) {
             auto argObject = eval(arg.get(), environment);
             if (isError(argObject.get())) {
@@ -237,9 +234,9 @@ namespace GI {
         return args;
     }
 
-    std::unique_ptr<GIObject> evalCallExpression(CallExpression *node, std::shared_ptr<Environment> environment) {
+    std::shared_ptr<GIObject> evalCallExpression(CallExpression *node, std::shared_ptr<Environment> environment) {
         auto evalFunction = [&]( // NOLINT(misc-no-recursion)
-                FunctionObject *functionObject) -> std::unique_ptr<GIObject> {
+                FunctionObject *functionObject) -> std::shared_ptr<GIObject> {
             auto args = evalFunctionArguments(node, environment);
 
             Environment env{functionObject->environment};
@@ -252,7 +249,7 @@ namespace GI {
 
             auto result = eval(functionObject->body.get(), std::make_shared<Environment>(env));
             if (result->getType() == ObjectType::RETURN_VALUE) {
-                return std::move(static_cast<ReturnValueObject *>(result.get())->value);
+                return result;
             }
             return result;
         };
@@ -285,7 +282,8 @@ namespace GI {
 
     }
 
-    std::unique_ptr<GIObject> evalExpression(Node *node, const std::shared_ptr<Environment> &environment) {
+
+    std::shared_ptr<GIObject> evalExpression(Node *node, const std::shared_ptr<Environment> &environment) {
         switch (node->getType()) {
             case NodeType::IntegerExpression:
                 return std::make_unique<IntegerObject>(static_cast<IntegerExpression *>(node)->value);
@@ -293,13 +291,50 @@ namespace GI {
                 return std::make_unique<BooleanObject>(static_cast<BoolExpression *>(node)->value);
             case NodeType::StringExpression:
                 return std::make_unique<StringObject>(static_cast<StringExpression *>(node)->value);
+            case NodeType::ArrayExpression: {
+                auto arrayExpr = static_cast<ArrayExpression *>(node);
+                std::vector<std::shared_ptr<GIObject>> elems{};
+                for (auto &elem: arrayExpr->elements) {
+                    auto elemObject = eval(elem.get(), environment);
+                    if (isError(elemObject.get())) {
+                        elems.push_back(std::move(elemObject));
+                        break;
+                    }
+                    elems.push_back(std::move(elemObject));
+                }
+                return std::make_unique<ArrayObject>(std::move(elems));
+            }
+            case NodeType::IndexExpression: {
+                auto indexExpression = static_cast<IndexExpression *>(node);
+                auto left = eval(indexExpression->leftExpression.get(), environment);
+                if (isError(left.get())) {
+                    return left;
+                }
+                auto index = eval(indexExpression->indexExpression.get(), environment);
+                if (isError(index.get())) {
+                    return index;
+                }
+                if (left->getType() == ObjectType::ARRAY && index->getType() == ObjectType::INTEGER) {
+                    auto arrayObject = static_cast<ArrayObject *>(left.get());
+                    auto indexObject = static_cast<IntegerObject *>(index.get());
+                    if (indexObject->value < 0 || indexObject->value >= arrayObject->elements.size()) {
+                        return nullptr;
+                    }
+                    auto elem = arrayObject->elements[indexObject->value].get();
+                    if (elem->getType() == ObjectType::INTEGER) {
+                        return make_unique<IntegerObject>(static_cast<IntegerObject *>(elem)->value);
+                    }
+                    return makeErrorObject("TODO: unsupported array index value");
+                }
+                return makeErrorObject("index operator not supported: " + objectTypeNameMapping.map[left->getType()]);
+            }
             case NodeType::PrefixExpression: {
                 auto prefixExpression = static_cast<PrefixExpression *>(node);
                 auto right = eval(prefixExpression->rightExpression.get(), environment);
                 if (isError(right.get())) {
                     return right;
                 }
-                return evalPrefixExpression(prefixExpression->prefixOperator, std::move(right));
+                return evalPrefixExpression(prefixExpression->prefixOperator, right);
             }
             case NodeType::InfixExpression: {
                 auto infixExpression = static_cast<InfixExpression *>(node);
@@ -311,7 +346,7 @@ namespace GI {
                 if (isError(right.get())) {
                     return right;
                 }
-                return evalInfixExpression(infixExpression->infixOperator, std::move(left), std::move(right));
+                return evalInfixExpression(infixExpression->infixOperator, left, right);
             }
             case NodeType::IfExpression:
                 return evalIfExpression(static_cast<IfExpression *>(node), environment);
@@ -325,11 +360,14 @@ namespace GI {
             }
             case NodeType::CallExpression:
                 return evalCallExpression(static_cast<CallExpression *>(node), environment);
+            default:
+                // fallback
+                break;
         }
         return nullptr;
     }
 
-    std::unique_ptr<GIObject> eval(
+    std::shared_ptr<GIObject> eval(
             Node *node,
             const std::shared_ptr<Environment> &environment
     ) {
@@ -346,7 +384,7 @@ namespace GI {
                 if (isError(value.get())) {
                     return value;
                 }
-                return std::make_unique<ReturnValueObject>(std::move(value));
+                return std::make_unique<ReturnValueObject>(value);
             }
             case NodeType::LetStatement: {
                 auto letStatement = static_cast<LetStatement *>(node);
@@ -354,7 +392,7 @@ namespace GI {
                 if (isError(value.get())) {
                     return value;
                 }
-                environment->setValue(letStatement->name->value, std::move(value));
+                environment->setValue(letStatement->name->value, value);
                 return nullptr;
             }
             default:

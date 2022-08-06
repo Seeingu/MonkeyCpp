@@ -13,6 +13,7 @@
 #include "Ast.h"
 
 namespace GI {
+    using namespace std;
     enum class Precedence {
         LOWEST = 0,
         EQUALS = 1,
@@ -21,6 +22,7 @@ namespace GI {
         PRODUCT = 4,
         PREFIX = 5,
         CALL = 6,
+        INDEX = 7,
     };
 
     class ParserError {
@@ -49,6 +51,7 @@ namespace GI {
             precedences[TokenType::SLASH] = Precedence::PRODUCT;
             precedences[TokenType::ASTERISK] = Precedence::PRODUCT;
             precedences[TokenType::LPAREN] = Precedence::CALL;
+            precedences[TokenType::LBRACKET] = Precedence::INDEX;
         }
 
         std::unique_ptr<Program> parseProgram();
@@ -85,11 +88,16 @@ namespace GI {
 
         std::unique_ptr<Expression> parseGroupedExpression();
 
+        std::unique_ptr<ArrayExpression> parseArrayExpression();
+
+
         std::unique_ptr<FunctionExpression> parseFunctionExpression();
 
         std::vector<std::unique_ptr<Identifier>> parseFunctionParameters();
 
         std::unique_ptr<InfixExpression> parseInfixExpression(std::unique_ptr<Expression> left);
+
+        std::unique_ptr<IndexExpression> parseIndexExpression(std::unique_ptr<Expression> left);
 
         std::unique_ptr<CallExpression> parseCallExpression(std::unique_ptr<Expression> left);
 

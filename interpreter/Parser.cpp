@@ -102,6 +102,9 @@ namespace GI {
             case TokenType::LPAREN:
                 expression = parseGroupedExpression();
                 break;
+            case TokenType::LBRACKET:
+                expression = parseArrayExpression();
+                break;
             case TokenType::IF:
                 expression = parseIfExpression();
                 break;
@@ -124,8 +127,12 @@ namespace GI {
                 case TokenType::NOT_EQ:
                 case TokenType::LT:
                 case TokenType::GT:
-                    nextToken(); // skip infix token
+                    nextToken(); // consume infix token
                     expression = parseInfixExpression(std::move(expression));
+                    break;
+                case TokenType::LBRACKET:
+                    nextToken(); // consume right bracket
+                    expression = parseIndexExpression(std::move(expression));
                     break;
                 case TokenType::LPAREN:
                     expression = parseCallExpression(std::move(expression));
@@ -165,6 +172,31 @@ namespace GI {
 
     std::unique_ptr<BoolExpression> Parser::parseBoolExpression() {
         return std::make_unique<BoolExpression>(currentToken, currentToken.literal == "true");
+    }
+
+    std::unique_ptr<ArrayExpression> Parser::parseArrayExpression() {
+        auto token = currentToken;
+
+        std::vector<std::unique_ptr<Expression>> elements{};
+
+        if (peekToken.type == TokenType::RBRACKET) {
+            return std::make_unique<ArrayExpression>(token, std::move(elements));
+        }
+        nextToken();
+        elements.push_back(parseExpression(Precedence::LOWEST));
+
+        while (peekToken.type == TokenType::COMMA) {
+            nextToken(); // consume current element
+            nextToken(); // consume comma
+            elements.push_back(parseExpression(Precedence::LOWEST));
+        }
+
+        if (!expectPeekAndConsume(TokenType::RBRACKET)) {
+            return nullptr;
+        }
+
+        return std::make_unique<ArrayExpression>(token, std::move(elements));
+
     }
 
     std::unique_ptr<Expression> Parser::parseGroupedExpression() {
@@ -293,6 +325,16 @@ namespace GI {
         nextToken();
         auto right = parseExpression(precedence);
         return std::make_unique<InfixExpression>(token, std::move(left), std::move(right), token.literal);
+    }
+
+    std::unique_ptr<IndexExpression> Parser::parseIndexExpression(std::unique_ptr<Expression> left) {
+        auto token = currentToken;
+        nextToken();
+        auto indexExpression = parseExpression(Precedence::LOWEST);
+        if (!expectPeekAndConsume(TokenType::RBRACKET)) {
+            return nullptr;
+        }
+        return make_unique<IndexExpression>(token, std::move(left), std::move(indexExpression));
     }
 
     std::unique_ptr<CallExpression> Parser::parseCallExpression(std::unique_ptr<Expression> left) {

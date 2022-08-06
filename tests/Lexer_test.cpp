@@ -29,6 +29,7 @@ TEST_CASE("Lexer", "[lexer]") {
     2 * (5 + 10);
     "foobar"
     "foo bar"
+    [1, 2];
                  )""";
 
     struct Expected {
@@ -119,6 +120,12 @@ TEST_CASE("Lexer", "[lexer]") {
             {GI::TokenType::SEMICOLON,  ";"},
             {GI::TokenType::STRING,     "foobar"},
             {GI::TokenType::STRING,     "foo bar"},
+            {GI::TokenType::LBRACKET, "["},
+            {GI::TokenType::INT, "1"},
+            {GI::TokenType::COMMA, ","},
+            {GI::TokenType::INT, "2"},
+            {GI::TokenType::RBRACKET, "]"},
+            {GI::TokenType::SEMICOLON, ";"},
             {GI::TokenType::_EOF,       ""},
     };
 
