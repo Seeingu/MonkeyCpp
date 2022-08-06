@@ -29,6 +29,22 @@ void testExpression(std::string input, E expected) {
     REQUIRE(object->value == expected);
 }
 
+TEST_CASE("eval", "[evaluator]") {
+    auto input = R"""(
+    let five = 5;
+    let ten = 10;
+
+    let add = fn(x, y) {
+      x + y;
+    };
+
+    let result = add(five, ten);
+    result;
+    )""";
+    auto result = testEval(input);
+    result->inspect();
+}
+
 TEST_CASE("eval int expression", "[evaluator]") {
     struct TestCase {
         std::string input;
