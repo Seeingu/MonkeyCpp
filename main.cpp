@@ -2,9 +2,10 @@
 #include <cpp-terminal/input.hpp>
 #include <cpp-terminal/prompt.hpp>
 #include "Lexer.h"
-
+#include "Environment.h"
 #include "Lexer.h"
 #include "Parser.h"
+#include "Evaluator.h"
 
 using Term::Key;
 using Term::prompt_multiline;
@@ -41,10 +42,9 @@ int main() {
         std::cout
                 << "    - Multi-line editing (use Alt-Enter to add a new line)"
                 << std::endl;
-        // TODO:
-        // std::cout << "    - Syntax highlighting" << std::endl;
         std::vector<std::string> history;
         std::function<bool(std::string)> iscomplete = determine_completeness;
+        auto env = std::make_shared<GI::Environment>();
         while (true) {
             std::string answer =
                     Term::prompt_multiline(term, "> ", history, iscomplete);
@@ -53,7 +53,9 @@ int main() {
             GI::Lexer lexer{answer};
             GI::Parser parser{&lexer};
             auto program = parser.parseProgram();
-            std::cout << "Print: " << program->toString() << std::endl;
+            std::cout << "Program: " << program->toString() << std::endl;
+            auto result = GI::eval(program.get(), env);
+            // TODO: show preview of result
         }
     } catch (const std::runtime_error &re) {
         std::cerr << "Runtime error: " << re.what() << std::endl;
