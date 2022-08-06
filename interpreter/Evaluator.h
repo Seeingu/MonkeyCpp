@@ -10,7 +10,7 @@
 #include "Utils.h"
 
 namespace GI {
-    std::unique_ptr<GIObject> eval(
+    std::shared_ptr<GIObject> eval(
             Node *node,
             const std::shared_ptr<Environment> &environment
     );

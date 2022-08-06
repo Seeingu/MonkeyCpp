@@ -12,11 +12,15 @@
 #include <memory>
 #include "Token.h"
 
+using namespace std;
+
 namespace GI {
     enum class NodeType {
         Identifier,
         IntegerExpression,
         StringExpression,
+        ArrayExpression,
+        IndexExpression,
         PrefixExpression,
         BoolExpression,
         IfExpression,
@@ -30,8 +34,7 @@ namespace GI {
         Program
     };
 
-    class Node {
-    public:
+    struct Node {
         virtual std::string toString() = 0;
 
         virtual NodeType getType() = 0;
@@ -39,15 +42,13 @@ namespace GI {
         virtual ~Node() = default;
     };
 
-    class Expression : public Node {
-    public:
+    struct Expression : Node {
         std::string toString() override = 0;
 
         NodeType getType() override = 0;
     };
 
-    class Identifier : public Expression {
-    public:
+    struct Identifier : Expression {
         Identifier(Token token, std::string value) : token{std::move(token)}, value{value} {};
 
         NodeType getType() override { return NodeType::Identifier; };
@@ -58,8 +59,7 @@ namespace GI {
         std::string value;
     };
 
-    class IntegerExpression : public Expression {
-    public:
+    struct IntegerExpression : Expression {
         IntegerExpression(Token token, int value) : token{std::move(token)}, value{value} {}
 
         NodeType getType() override { return NodeType::IntegerExpression; };
@@ -72,8 +72,7 @@ namespace GI {
         int value;
     };
 
-    class StringExpression : public Expression {
-    public:
+    struct StringExpression : Expression {
         StringExpression(Token token, std::string value) : token{std::move(token)}, value{std::move(value)} {}
 
         NodeType getType() override { return NodeType::StringExpression; }
@@ -85,6 +84,39 @@ namespace GI {
         Token token;
         std::string value;
     };
+
+    struct ArrayExpression : Expression {
+        ArrayExpression(const Token &token, std::vector<std::unique_ptr<Expression>> elements) :
+                token(token),
+                elements{std::move(elements)} {}
+
+        NodeType getType() override { return NodeType::ArrayExpression; }
+
+        std::string toString() override;
+
+        Token token;
+        std::vector<std::unique_ptr<Expression>> elements;
+    };
+
+    struct IndexExpression : Expression {
+        IndexExpression(Token token, unique_ptr <Expression> leftExpression,
+                        unique_ptr <Expression> indexExpression) :
+                token(std::move(token)), leftExpression(std::move(leftExpression)),
+                indexExpression(std::move(indexExpression)) {}
+
+        std::string toString() override {
+            return "";
+        }
+
+        NodeType getType() override {
+            return NodeType::IndexExpression;
+        }
+
+        Token token;
+        unique_ptr <Expression> leftExpression;
+        unique_ptr <Expression> indexExpression;
+    };
+
 
     class PrefixExpression : public Expression {
     public:

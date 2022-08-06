@@ -41,10 +41,10 @@ TEST_CASE("let statement", "[parser]") {
         ExpressionValue value;
     };
     std::vector<TestCase> cases{
-            TestCase{"let x = 5;", "x", 5},
-            TestCase{"let y = true;", "y", true},
-            TestCase{"let z = \"foo bar\";", "z", "foo bar"},
-            TestCase{"let foobar = y;", "foobar", "y"}
+            {"let x = 5;", "x", 5},
+            {"let y = true;", "y", true},
+            {"let z = \"foo bar\";", "z", "foo bar"},
+            {"let foobar = y;", "foobar", "y"}
     };
     for (auto &testCase: cases) {
         Lexer lexer{std::move(testCase.input)};
@@ -160,6 +160,28 @@ TEST_CASE("prefix expression", "[parser]") {
     }
 
 };
+
+TEST_CASE("array expression", "[parser]") {
+    auto input = "[1, \"str\", true, 2 * 2];";
+    Lexer lexer{input};
+    Parser parser{&lexer};
+    auto program = parser.parseProgram();
+
+    REQUIRE(program->statements.size() == 1);
+
+    auto stmt = program->statements[0].get();
+
+    auto expressionStatement = dynamic_cast<ExpressionStatement *>(stmt);
+
+    auto arrayExpression = dynamic_cast<ArrayExpression *>(expressionStatement->expression.get());
+    REQUIRE(arrayExpression->elements.size() == 4);
+
+    auto elems = std::move(arrayExpression->elements);
+    REQUIRE(elems[0]->getType() == GI::NodeType::IntegerExpression);
+    REQUIRE(elems[1]->getType() == GI::NodeType::StringExpression);
+    REQUIRE(elems[2]->getType() == GI::NodeType::BoolExpression);
+    REQUIRE(elems[3]->getType() == GI::NodeType::InfixExpression);
+}
 
 TEST_CASE("infix expression", "[parser]") {
     struct TestCase {

@@ -100,4 +100,18 @@ namespace GI {
         ss << argsStream.str() << ")";
         return ss.str();
     }
+
+    std::string ArrayExpression::toString() {
+        std::ostringstream ss;
+        ss << "[";
+        std::ostringstream elemStream;
+        for (auto &elem: elements) {
+            elemStream << elem->toString() << ", ";
+        }
+        elemStream.seekp(-2, std::ios::end);
+        ss << elemStream.str();
+        ss << "]";
+        return ss.str();
+    }
+
 }

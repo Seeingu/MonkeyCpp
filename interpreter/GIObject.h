@@ -24,7 +24,8 @@ namespace GI {
         STRING,
         BUILTIN,
         RETURN_VALUE,
-        FUNCTION
+        FUNCTION,
+        ARRAY
     };
 
     class ObjectTypeMapping {
@@ -39,25 +40,22 @@ namespace GI {
             OBJECT_TYPE_MAP(RETURN_VALUE);
             OBJECT_TYPE_MAP(FUNCTION);
             OBJECT_TYPE_MAP(BUILTIN);
+            OBJECT_TYPE_MAP(ARRAY);
         }
 
         std::map<ObjectType, std::string> map;
     };
 
-    class GIObject {
-    public:
+    struct GIObject {
         virtual ObjectType getType() = 0;
-
 
         virtual std::string inspect() = 0;
 
         virtual ~GIObject() = default;
     };
 
-    class IntegerObject : public GIObject {
-    public:
+    struct IntegerObject : GIObject {
         IntegerObject(int value) : value{value} {}
-
 
         ObjectType getType() override { return ObjectType::INTEGER; }
 
@@ -68,8 +66,7 @@ namespace GI {
         int value;
     };
 
-    class StringObject : public GIObject {
-    public:
+    struct StringObject : GIObject {
         StringObject(std::string value) : value{value} {}
 
         ObjectType getType() override { return ObjectType::STRING; }
@@ -79,8 +76,7 @@ namespace GI {
         std::string value;
     };
 
-    class BooleanObject : public GIObject {
-    public:
+    struct BooleanObject : GIObject {
         BooleanObject(bool value) : value{value} {}
 
         ObjectType getType() override { return ObjectType::BOOLEAN; }
@@ -90,26 +86,23 @@ namespace GI {
         bool value;
     };
 
-    class NullObject : public GIObject {
-    public:
+    struct NullObject : GIObject {
         ObjectType getType() override { return ObjectType::_NULL; }
 
         std::string inspect() override { return "null"; }
     };
 
-    class ReturnValueObject : public GIObject {
-    public:
-        ReturnValueObject(std::unique_ptr<GIObject> value) : value{std::move(value)} {}
+    struct ReturnValueObject : GIObject {
+        ReturnValueObject(std::shared_ptr<GIObject> value) : value{std::move(value)} {}
 
         ObjectType getType() override { return ObjectType::RETURN_VALUE; }
 
         std::string inspect() override { return value->inspect(); }
 
-        std::unique_ptr<GIObject> value;
+        std::shared_ptr<GIObject> value;
     };
 
-    class ErrorObject : public GIObject {
-    public:
+    struct ErrorObject : GIObject {
         ErrorObject(std::string message) : message{message} {}
 
         ObjectType getType() override { return ObjectType::ERROR; }
@@ -119,8 +112,7 @@ namespace GI {
         std::string message;
     };
 
-    class FunctionObject : public GIObject {
-    public:
+    struct FunctionObject : GIObject {
         FunctionObject(
                 std::vector<std::unique_ptr<Identifier>> parameters,
                 std::unique_ptr<BlockStatement> body,
@@ -149,8 +141,7 @@ namespace GI {
         std::shared_ptr<Environment> environment;
     };
 
-    class BuiltinFunctionObject : public GIObject {
-    public:
+    struct BuiltinFunctionObject : GIObject {
         BuiltinFunctionObject(
                 std::vector<std::unique_ptr<Identifier>> parameters,
                 std::unique_ptr<BlockStatement> body,
@@ -177,6 +168,29 @@ namespace GI {
         std::vector<std::unique_ptr<Identifier>> parameters;
         std::unique_ptr<BlockStatement> body;
         std::shared_ptr<Environment> environment;
+    };
+
+    struct ArrayObject : GIObject {
+        explicit ArrayObject(std::vector<std::shared_ptr<GIObject>> elements) : elements(std::move(elements)) {}
+
+        ObjectType getType() override {
+            return ObjectType::ARRAY;
+        }
+
+        std::string inspect() override {
+            std::stringstream ss;
+
+            std::vector<std::string> elems;
+            for (auto &elem: elements) {
+                elems.push_back(elem->inspect());
+            }
+            std::stringstream elemsStream;
+            std::copy(elems.begin(), elems.end() - 1, std::ostream_iterator<std::string>(elemsStream, ", "));
+            ss << "[" << elemsStream.str() << "]";
+            return ss.str();
+        }
+
+        std::vector<std::shared_ptr<GIObject>> elements;
     };
 }
 

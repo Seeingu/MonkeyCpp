@@ -135,6 +135,10 @@ namespace GI {
                 return {TokenType::LPAREN, charToString(currentChar)};
             case ')':
                 return {TokenType::RPAREN, charToString(currentChar)};
+            case '[':
+                return {TokenType::LBRACKET, charToString(currentChar)};
+            case ']':
+                return {TokenType::RBRACKET, charToString(currentChar)};
             case '"':
                 return {TokenType::STRING, readString()};
             case 0:

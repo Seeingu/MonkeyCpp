@@ -17,12 +17,10 @@ namespace GI {
         ILLEGAL = -1,
         _EOF,
 
-// Identifiers + literals
-        IDENTIFIER, // add, foobar, x, y, ...
+        IDENTIFIER,
         INT,
         STRING,
 
-// Operators
         ASSIGN,
         PLUS,
         MINUS,
@@ -36,7 +34,6 @@ namespace GI {
         EQ,
         NOT_EQ,
 
-// Delimiters
         COMMA,
         SEMICOLON,
 
@@ -44,8 +41,9 @@ namespace GI {
         RPAREN,
         LBRACE,
         RBRACE,
+        LBRACKET,
+        RBRACKET,
 
-// Keywords
         FUNCTION,
         LET,
         TRUE,
@@ -95,7 +93,8 @@ namespace GI {
             TOKEN_TYPE_MAP(IF);
             TOKEN_TYPE_MAP(ELSE);
             TOKEN_TYPE_MAP(RETURN);
-
+            TOKEN_TYPE_MAP(LBRACKET);
+            TOKEN_TYPE_MAP(RBRACKET);
         }
 
         std::map<GI::TokenType, std::string> map;

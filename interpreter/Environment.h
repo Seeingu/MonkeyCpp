@@ -17,7 +17,7 @@ namespace GI {
 
         Environment() : outer{nullptr} {}
 
-        void setValue(std::string name, std::unique_ptr<GIObject> value);
+        void setValue(std::string name, std::shared_ptr<GIObject> value);
 
         std::shared_ptr<GIObject> getValue(std::string name);
 

@@ -9,16 +9,22 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <utility>
 
+using namespace std;
 using namespace GI;
 
-template<typename T, typename E>
-void testExpression(std::string input, E expected) {
-    Lexer lexer{input};
+std::shared_ptr<GIObject> testEval(std::string input) {
+    Lexer lexer{std::move(input)};
     Parser parser{&lexer};
     auto program = parser.parseProgram();
     auto env = std::make_shared<Environment>();
-    auto result = eval(program.get(), env);
+    return eval(program.get(), env);
+}
+
+template<typename T, typename E>
+void testExpression(std::string input, E expected) {
+    auto result = testEval(std::move(input));
     auto object = dynamic_cast<T *>(result.get());
     REQUIRE(object->value == expected);
 }
@@ -98,6 +104,82 @@ TEST_CASE("eval string expression", "[evaluator]") {
     }
 }
 
+TEST_CASE("eval array expression", "[evaluator]") {
+    string input{"[1, 2 * 2, 3 + 3, -4]"};
+    auto result = testEval(input);
+    auto object = static_cast<ArrayObject *>(result.get());
+    REQUIRE(object->elements.size() == 4);
+    REQUIRE(static_cast<IntegerObject *>(object->elements[0].get())->value == 1);
+    REQUIRE(static_cast<IntegerObject *>(object->elements[1].get())->value == 4);
+    REQUIRE(static_cast<IntegerObject *>(object->elements[2].get())->value == 6);
+    REQUIRE(static_cast<IntegerObject *>(object->elements[3].get())->value == -4);
+}
+
+TEST_CASE("eval array index", "[evaluator]") {
+    struct TestCase {
+        string input;
+        int expected;
+    };
+    vector<TestCase> cases = {
+            {
+                    "[1, 2, 3][0]",
+                    1,
+            },
+            {
+                    "[1, 2, 3][1]",
+                    2,
+            },
+            {
+                    "[1, 2, 3][2]",
+                    3,
+            },
+            {
+                    "let i = 0; [1][i];",
+                    1,
+            },
+            {
+                    "[1, 2, 3][1 + 1];",
+                    3,
+            },
+            {
+                    "let myArray = [1, 2, 3]; myArray[2];",
+                    3,
+            },
+            {
+                    "let myArray = [1, 2, 3]; myArray[0] + myArray[1] + myArray[2];",
+                    6,
+            },
+            {
+                    "let myArray = [1, 2, 3]; let i = myArray[0]; myArray[i]",
+                    2,
+            },
+    };
+    for (auto &testCase: cases) {
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
+    }
+
+}
+
+TEST_CASE("eval array index overflow", "[evaluator]") {
+    struct TestCase {
+        string input;
+    };
+    vector<TestCase> cases = {
+            {
+                    "[1, 2, 3][3]",
+            },
+            {
+                    "[1, 2, 3][-1]",
+            },
+    };
+    for (auto &testCase: cases) {
+        auto result = testEval(testCase.input);
+        REQUIRE(result == nullptr);
+    }
+
+}
+
+
 TEST_CASE("bang expression", "[evaluator]") {
     struct TestCase {
         std::string input;
@@ -105,15 +187,15 @@ TEST_CASE("bang expression", "[evaluator]") {
     };
 
     std::vector<TestCase> cases = {
-            {"!true", false},
-            {"!false", true},
-            {"!0", false},
-            {"!!true", true},
-            {"!!false", false},
-            {"!!0", true},
-            {"!\"\"", false},
-            {"!!\"\"", true},
-            {"!\"string\"", false},
+            {"!true",        false},
+            {"!false",       true},
+            {"!0",           false},
+            {"!!true",       true},
+            {"!!false",      false},
+            {"!!0",          true},
+            {"!\"\"",        false},
+            {"!!\"\"",       true},
+            {"!\"string\"",  false},
             {"!!\"string\"", true}
     };
 
@@ -141,7 +223,7 @@ TEST_CASE("if expression", "[evaluator]") {
     for (auto &testCase: cases) {
         Lexer lexer{testCase.input};
         Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
+        // std::cout << testCase.input << std::endl;
         auto program = parser.parseProgram();
         auto env = std::make_shared<Environment>();
         auto result = eval(program.get(), env);
@@ -259,7 +341,6 @@ TEST_CASE("error handling", "[evaluator]") {
     for (auto &testCase: cases) {
         Lexer lexer{testCase.input};
         Parser parser{&lexer};
-        std::cout << testCase.input << std::endl;
         auto program = parser.parseProgram();
         auto env = std::make_shared<Environment>();
         auto result = eval(program.get(), env);
