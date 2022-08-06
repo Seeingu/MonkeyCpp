@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-static-cast-downcast"
 //
 // Created by seeu on 2022/7/9.
 //
@@ -10,14 +12,27 @@
 #include <variant>
 
 using namespace GI;
+using namespace std;
+
+unique_ptr<Program> testParse(string input) {
+    Lexer lexer{std::move(input)};
+    Parser parser{&lexer};
+    return parser.parseProgram();
+}
+
+unique_ptr<Statement> testSingleStatement(string input) {
+    auto program = testParse(std::move(input));
+    REQUIRE(program->statements.size() == 1);
+    return std::move(program->statements[0]);
+}
 
 static void testExpression(std::unique_ptr<Expression> expression, int value) {
-    auto intExpr = dynamic_cast<IntegerExpression *>(expression.get());
+    auto intExpr = static_cast<IntegerExpression *>(expression.get());
     REQUIRE(intExpr->value == value);
 }
 
 static void testExpression(std::unique_ptr<Expression> expression, bool value) {
-    auto boolExpr = dynamic_cast<BoolExpression *>(expression.get());
+    auto boolExpr = static_cast<BoolExpression *>(expression.get());
     REQUIRE(boolExpr->value == value);
 }
 
@@ -41,21 +56,14 @@ TEST_CASE("let statement", "[parser]") {
         ExpressionValue value;
     };
     std::vector<TestCase> cases{
-            {"let x = 5;", "x", 5},
-            {"let y = true;", "y", true},
-            {"let z = \"foo bar\";", "z", "foo bar"},
-            {"let foobar = y;", "foobar", "y"}
+            {"let x = 5;",           "x",      5},
+            {"let y = true;",        "y",      true},
+            {"let z = \"foo bar\";", "z",      "foo bar"},
+            {"let foobar = y;",      "foobar", "y"}
     };
     for (auto &testCase: cases) {
-        Lexer lexer{std::move(testCase.input)};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        REQUIRE(program->statements.size() == 1);
-
-        auto stmt = program->statements[0].get();
-
-        auto letStatement = dynamic_cast<LetStatement *>(stmt);
+        auto stmt = testSingleStatement(testCase.input);
+        auto letStatement = static_cast<LetStatement *>(stmt.get());
         REQUIRE(letStatement->name->value == testCase.name);
         REQUIRE(letStatement->token.literal == "let");
 
@@ -79,15 +87,8 @@ TEST_CASE("return statement", "[parser]") {
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{std::move(testCase.input)};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        REQUIRE(program->statements.size() == 1);
-
-        auto stmt = program->statements[0].get();
-
-        auto returnStatement = dynamic_cast<ReturnStatement *>(stmt);
+        auto stmt = testSingleStatement(testCase.input);
+        auto returnStatement = static_cast<ReturnStatement *>(stmt.get());
         REQUIRE(returnStatement->token.literal == "return");
 
         std::visit([&](auto v) {
@@ -109,15 +110,11 @@ TEST_CASE("expression statement", "[parser]") {
             {"\"string\";", "string"}
     };
     for (auto &testCase: cases) {
-        Lexer lexer{std::move(testCase.input)};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
+        auto program = testParse(testCase.input);
 
         REQUIRE(program->statements.size() == 1);
-
         auto stmt = program->statements[0].get();
-
-        auto expressionStatement = dynamic_cast<ExpressionStatement *>(stmt);
+        auto expressionStatement = static_cast<ExpressionStatement *>(stmt);
 
         std::visit([&](auto v) {
             testExpression(std::move(expressionStatement->expression), v);
@@ -141,17 +138,9 @@ TEST_CASE("prefix expression", "[parser]") {
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{std::move(testCase.input)};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        REQUIRE(program->statements.size() == 1);
-
-        auto stmt = program->statements[0].get();
-
-        auto expressionStatement = dynamic_cast<ExpressionStatement *>(stmt);
-
-        auto prefixExpression = dynamic_cast<PrefixExpression *>(expressionStatement->expression.get());
+        auto stmt = testSingleStatement(testCase.input);
+        auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
+        auto prefixExpression = static_cast<PrefixExpression *>(expressionStatement->expression.get());
         REQUIRE(prefixExpression->prefixOperator == testCase.prefix);
 
         std::visit([&](auto v) {
@@ -163,17 +152,10 @@ TEST_CASE("prefix expression", "[parser]") {
 
 TEST_CASE("array expression", "[parser]") {
     auto input = "[1, \"str\", true, 2 * 2];";
-    Lexer lexer{input};
-    Parser parser{&lexer};
-    auto program = parser.parseProgram();
+    auto stmt = testSingleStatement(input);
+    auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
 
-    REQUIRE(program->statements.size() == 1);
-
-    auto stmt = program->statements[0].get();
-
-    auto expressionStatement = dynamic_cast<ExpressionStatement *>(stmt);
-
-    auto arrayExpression = dynamic_cast<ArrayExpression *>(expressionStatement->expression.get());
+    auto arrayExpression = static_cast<ArrayExpression *>(expressionStatement->expression.get());
     REQUIRE(arrayExpression->elements.size() == 4);
 
     auto elems = std::move(arrayExpression->elements);
@@ -181,6 +163,26 @@ TEST_CASE("array expression", "[parser]") {
     REQUIRE(elems[1]->getType() == GI::NodeType::StringExpression);
     REQUIRE(elems[2]->getType() == GI::NodeType::BoolExpression);
     REQUIRE(elems[3]->getType() == GI::NodeType::InfixExpression);
+}
+
+TEST_CASE("empty hashmap", "[parser]") {
+    auto input = "{}";
+    auto stmt = testSingleStatement(input);
+    auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
+    auto hashExpression = static_cast<HashExpression *>(expressionStatement->expression.get());
+    REQUIRE(hashExpression->pairs.empty());
+}
+
+TEST_CASE("hashmap", "[parser]") {
+    auto input = "{true: 1, false: 2}";
+    auto stmt = testSingleStatement(input);
+    auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
+    auto hashExpression = static_cast<HashExpression *>(expressionStatement->expression.get());
+    REQUIRE(hashExpression->pairs.size() == 2);
+    for (auto &p: hashExpression->pairs) {
+        REQUIRE(p.first->getType() == GI::NodeType::BoolExpression);
+        REQUIRE(p.second->getType() == GI::NodeType::IntegerExpression);
+    }
 }
 
 TEST_CASE("infix expression", "[parser]") {
@@ -215,17 +217,9 @@ TEST_CASE("infix expression", "[parser]") {
     };
 
     for (auto &testCase: cases) {
-        Lexer lexer{std::move(testCase.input)};
-        Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        REQUIRE(program->statements.size() == 1);
-
-        auto stmt = program->statements[0].get();
-
-        auto expressionStatement = dynamic_cast<ExpressionStatement *>(stmt);
-
-        auto infixExpression = dynamic_cast<InfixExpression *>(expressionStatement->expression.get());
+        auto stmt = testSingleStatement(testCase.input);
+        auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
+        auto infixExpression = static_cast<InfixExpression *>(expressionStatement->expression.get());
         REQUIRE(infixExpression->infixOperator == testCase.infix);
 
         std::visit([&](auto v) {
@@ -237,3 +231,5 @@ TEST_CASE("infix expression", "[parser]") {
 
     }
 };
+
+#pragma clang diagnostic pop

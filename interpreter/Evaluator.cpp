@@ -304,6 +304,26 @@ namespace GI {
                 }
                 return std::make_unique<ArrayObject>(std::move(elems));
             }
+            case NodeType::HashExpression: {
+                auto hashExpr = static_cast<HashExpression *>(node);
+                std::map<HashKey, HashPair> pairs{};
+                for (auto &p: hashExpr->pairs) {
+                    auto key = eval(p.first.get(), environment);
+                    if (isError(key.get())) {
+                        return key;
+                    }
+                    auto value = eval(p.second.get(), environment);
+                    if (isError(value.get())) {
+                        return value;
+                    }
+                    auto hashKey = key->hash();
+                    pairs[hashKey] = HashPair{
+                            .key =  std::move(key),
+                            .value =  std::move(value)
+                    };
+                }
+                return std::make_unique<HashObject>(std::move(pairs));
+            }
             case NodeType::IndexExpression: {
                 auto indexExpression = static_cast<IndexExpression *>(node);
                 auto left = eval(indexExpression->leftExpression.get(), environment);
@@ -325,6 +345,14 @@ namespace GI {
                         return make_unique<IntegerObject>(static_cast<IntegerObject *>(elem)->value);
                     }
                     return makeErrorObject("TODO: unsupported array index value");
+                } else if (left->getType() == ObjectType::HASH) {
+                    auto hashObject = static_cast<HashObject *>(left.get());
+                    auto hashKey = index->hash();
+                    if (hashObject->pairs.contains(hashKey)) {
+                        return hashObject->pairs[hashKey].value;
+                    } else {
+                        return nullptr;
+                    }
                 }
                 return makeErrorObject("index operator not supported: " + objectTypeNameMapping.map[left->getType()]);
             }

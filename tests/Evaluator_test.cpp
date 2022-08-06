@@ -179,6 +179,40 @@ TEST_CASE("eval array index overflow", "[evaluator]") {
 
 }
 
+TEST_CASE("hashmap", "[evaluator]") {
+    auto input = R"""(
+    let two = "two";
+	{
+		"one": 10 - 9,
+		two: 1 + 1,
+		"thr" + "ee": 6 / 2,
+		4: 4,
+		true: 5,
+		false: 6
+	}
+    )""";
+    auto result = testEval(input);
+    REQUIRE(result->getType() == GI::ObjectType::HASH);
+
+    auto hashObject = static_cast<HashObject *>(result.get());
+    REQUIRE(hashObject->pairs.size() == 6);
+    auto firstHash = static_cast<IntegerObject *>(hashObject->pairs[StringObject{"one"}.hash()].value.get());
+    REQUIRE(firstHash->value == 1);
+}
+
+TEST_CASE("hashmap index", "[evaluator]") {
+    struct TestCase {
+        string input;
+        int expected;
+    };
+    vector<TestCase> cases = {
+            {R"({"foo": 5}["foo"])",                5},
+            {R"(let key = "foo"; {"foo": 5}[key])", 5}
+    };
+    for (auto &testCase: cases) {
+        testExpression<IntegerObject>(testCase.input, testCase.expected);
+    }
+}
 
 TEST_CASE("bang expression", "[evaluator]") {
     struct TestCase {

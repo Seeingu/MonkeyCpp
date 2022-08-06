@@ -90,6 +90,7 @@ namespace GI {
 
         std::unique_ptr<ArrayExpression> parseArrayExpression();
 
+        std::unique_ptr<HashExpression> parseHashExpression();
 
         std::unique_ptr<FunctionExpression> parseFunctionExpression();
 

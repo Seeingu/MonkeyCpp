@@ -36,6 +36,7 @@ namespace GI {
 
         COMMA,
         SEMICOLON,
+        COLON,
 
         LPAREN,
         RPAREN,
@@ -95,6 +96,7 @@ namespace GI {
             TOKEN_TYPE_MAP(RETURN);
             TOKEN_TYPE_MAP(LBRACKET);
             TOKEN_TYPE_MAP(RBRACKET);
+            TOKEN_TYPE_MAP(COLON);
         }
 
         std::map<GI::TokenType, std::string> map;
