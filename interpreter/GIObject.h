@@ -16,6 +16,8 @@
 namespace GI {
     class Environment;
 
+    using HashKey = std::size_t;
+
     enum class ObjectType {
         _NULL,
         ERROR,
@@ -25,7 +27,8 @@ namespace GI {
         BUILTIN,
         RETURN_VALUE,
         FUNCTION,
-        ARRAY
+        ARRAY,
+        HASH
     };
 
     class ObjectTypeMapping {
@@ -41,6 +44,7 @@ namespace GI {
             OBJECT_TYPE_MAP(FUNCTION);
             OBJECT_TYPE_MAP(BUILTIN);
             OBJECT_TYPE_MAP(ARRAY);
+            OBJECT_TYPE_MAP(HASH);
         }
 
         std::map<ObjectType, std::string> map;
@@ -52,6 +56,10 @@ namespace GI {
         virtual std::string inspect() = 0;
 
         virtual ~GIObject() = default;
+
+        virtual HashKey hash() {
+            throw "hash is not supported";
+        }
     };
 
     struct IntegerObject : GIObject {
@@ -61,6 +69,10 @@ namespace GI {
 
         std::string inspect() override {
             return std::to_string(value);
+        }
+
+        HashKey hash() override {
+            return std::hash<int>{}(value);
         }
 
         int value;
@@ -74,6 +86,10 @@ namespace GI {
         std::string inspect() override { return value; }
 
         std::string value;
+
+        HashKey hash() override {
+            return std::hash<string>{}(value);
+        }
     };
 
     struct BooleanObject : GIObject {
@@ -82,6 +98,11 @@ namespace GI {
         ObjectType getType() override { return ObjectType::BOOLEAN; }
 
         std::string inspect() override { return std::to_string(value); }
+
+        HashKey hash() override {
+            return std::hash<bool>{}(value);
+
+        }
 
         bool value;
     };
@@ -191,6 +212,33 @@ namespace GI {
         }
 
         std::vector<std::shared_ptr<GIObject>> elements;
+    };
+
+    struct HashPair {
+        std::shared_ptr<GIObject> key;
+        std::shared_ptr<GIObject> value;
+    };
+
+    struct HashObject : GIObject {
+        explicit HashObject(const map<HashKey, HashPair> &pairs) : pairs(pairs) {}
+
+        ObjectType getType() override { return ObjectType::HASH; };
+
+        std::string inspect() override {
+            ostringstream ss;
+            ss << "{";
+            vector<string> pairList;
+            for (auto &p: pairs) {
+                pairList.push_back(p.second.key->inspect() + ": " + p.second.value->inspect());
+            }
+            ostringstream pairStream;
+            std::copy(pairList.begin(), pairList.end() - 1, std::ostream_iterator<string>(pairStream, ", "));
+            ss << pairStream.str();
+            ss << "}";
+            return ss.str();
+        }
+
+        std::map<HashKey, HashPair> pairs;
     };
 }
 

@@ -131,6 +131,8 @@ namespace GI {
                 return {TokenType::LBRACE, charToString(currentChar)};
             case '}':
                 return {TokenType::RBRACE, charToString(currentChar)};
+            case ':':
+                return {TokenType::COLON, charToString(currentChar)};
             case '(':
                 return {TokenType::LPAREN, charToString(currentChar)};
             case ')':

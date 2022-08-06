@@ -101,6 +101,16 @@ namespace GI {
         return ss.str();
     }
 
+    string HashExpression::toString() {
+        stringstream ss{};
+        ss << "{";
+        for (auto &pair: pairs) {
+            ss << pair.first->toString() << ": " << pair.second->toString() << "," << std::endl;
+        }
+        ss << "}";
+        return ss.str();
+    }
+
     std::string ArrayExpression::toString() {
         std::ostringstream ss;
         ss << "[";

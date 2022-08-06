@@ -105,6 +105,9 @@ namespace GI {
             case TokenType::LBRACKET:
                 expression = parseArrayExpression();
                 break;
+            case TokenType::LBRACE:
+                expression = parseHashExpression();
+                break;
             case TokenType::IF:
                 expression = parseIfExpression();
                 break;
@@ -198,6 +201,34 @@ namespace GI {
         return std::make_unique<ArrayExpression>(token, std::move(elements));
 
     }
+
+    std::unique_ptr<HashExpression> Parser::parseHashExpression() {
+        auto token = currentToken;
+        std::map<unique_ptr<Expression>, unique_ptr<Expression>> pairs{};
+
+        while (peekToken.type != TokenType::RBRACE) {
+            nextToken();
+            auto key = parseExpression(Precedence::LOWEST);
+            if (!expectPeekAndConsume(TokenType::COLON)) {
+                return nullptr;
+            }
+
+            nextToken(); // consume colon
+            auto value = parseExpression(Precedence::LOWEST);
+
+            pairs[std::move(key)] = std::move(value);
+            if (peekToken.type != TokenType::RBRACE && !expectPeekAndConsume(TokenType::COMMA)) {
+                return nullptr;
+            }
+        }
+
+        if (!expectPeekAndConsume(TokenType::RBRACE)) {
+            return nullptr;
+        }
+        return make_unique<HashExpression>(token, std::move(pairs));
+
+    }
+
 
     std::unique_ptr<Expression> Parser::parseGroupedExpression() {
         nextToken();

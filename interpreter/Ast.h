@@ -21,6 +21,7 @@ namespace GI {
         StringExpression,
         ArrayExpression,
         IndexExpression,
+        HashExpression,
         PrefixExpression,
         BoolExpression,
         IfExpression,
@@ -86,8 +87,8 @@ namespace GI {
     };
 
     struct ArrayExpression : Expression {
-        ArrayExpression(const Token &token, std::vector<std::unique_ptr<Expression>> elements) :
-                token(token),
+        ArrayExpression(Token token, std::vector<std::unique_ptr<Expression>> elements) :
+                token{std::move(token)},
                 elements{std::move(elements)} {}
 
         NodeType getType() override { return NodeType::ArrayExpression; }
@@ -96,6 +97,17 @@ namespace GI {
 
         Token token;
         std::vector<std::unique_ptr<Expression>> elements;
+    };
+
+    struct HashExpression : Expression {
+        HashExpression(Token token, std::map<unique_ptr<Expression>,unique_ptr<Expression>> pairs) : token{token}, pairs{std::move(pairs)} {}
+
+        NodeType getType() override { return NodeType::HashExpression;};
+
+        string toString() override;
+
+        Token token;
+        std::map<unique_ptr<Expression>,unique_ptr<Expression> > pairs;
     };
 
     struct IndexExpression : Expression {
@@ -118,8 +130,7 @@ namespace GI {
     };
 
 
-    class PrefixExpression : public Expression {
-    public:
+    struct PrefixExpression : Expression {
         PrefixExpression(Token token, std::string prefixOperator, std::unique_ptr<Expression> rightExpression) : token{
                 std::move(
                         token)}, prefixOperator{prefixOperator}, rightExpression{std::move(rightExpression)} {};
@@ -133,8 +144,7 @@ namespace GI {
         std::unique_ptr<Expression> rightExpression;
     };
 
-    class BoolExpression : public Expression {
-    public:
+    struct BoolExpression : Expression {
         BoolExpression(Token token, bool value) : token(std::move(token)), value{value} {}
 
         std::string toString() override {
@@ -150,10 +160,9 @@ namespace GI {
     };
 
     // predeclare
-    class BlockStatement;
+    struct BlockStatement;
 
-    class IfExpression : public Expression {
-    public:
+    struct IfExpression : Expression {
         IfExpression(Token token,
                      std::unique_ptr<Expression> condition,
                      std::unique_ptr<BlockStatement> consequences,
@@ -171,8 +180,7 @@ namespace GI {
         std::unique_ptr<BlockStatement> alternative;
     };
 
-    class FunctionExpression : public Expression {
-    public:
+    struct FunctionExpression : Expression {
         FunctionExpression(Token token,
                            std::vector<std::unique_ptr<Identifier>> parameters,
                            std::unique_ptr<BlockStatement> body
@@ -187,8 +195,7 @@ namespace GI {
         std::unique_ptr<BlockStatement> body;
     };
 
-    class Statement : public Node {
-    public:
+    struct Statement : Node {
         std::string toString() override = 0;
 
         NodeType getType() override = 0;
@@ -196,8 +203,7 @@ namespace GI {
         ~Statement() override = default;
     };
 
-    class LetStatement : public Statement {
-    public:
+    struct LetStatement : Statement {
         LetStatement(Token token, std::unique_ptr<Identifier> name, std::unique_ptr<Expression> value)
                 : token{std::move(token)}, name{std::move(name)}, value{std::move(value)} {}
 
@@ -212,8 +218,7 @@ namespace GI {
         std::unique_ptr<Expression> value;
     };
 
-    class BlockStatement : public Statement {
-    public:
+    struct BlockStatement : Statement {
         BlockStatement(Token token,
                        std::vector<std::unique_ptr<Statement>> statements) :
                 token{std::move(token)},
@@ -227,8 +232,7 @@ namespace GI {
         std::vector<std::unique_ptr<Statement>> statements;
     };
 
-    class ReturnStatement : public Statement {
-    public:
+    struct ReturnStatement : Statement {
         ReturnStatement(Token token, std::unique_ptr<Expression> returnValue) : token{
                 std::move(token)}, returnValue{std::move(returnValue)} {};
 
@@ -240,8 +244,7 @@ namespace GI {
         std::unique_ptr<Expression> returnValue;
     };
 
-    class ExpressionStatement : public Statement {
-    public:
+    struct ExpressionStatement : Statement {
         ExpressionStatement(
                 Token token,
                 std::unique_ptr<Expression> expression
@@ -255,8 +258,7 @@ namespace GI {
         std::unique_ptr<Expression> expression;
     };
 
-    class InfixExpression : public Expression {
-    public:
+    struct InfixExpression : Expression {
         InfixExpression(Token token,
                         std::unique_ptr<Expression> leftExpression,
                         std::unique_ptr<Expression> rightExpression,
@@ -275,8 +277,7 @@ namespace GI {
         std::string infixOperator;
     };
 
-    class CallExpression : public Expression {
-    public:
+    struct CallExpression : Expression {
         CallExpression(Token token,
                        std::unique_ptr<Expression> name,
                        std::vector<std::unique_ptr<Expression>> arguments
@@ -291,8 +292,7 @@ namespace GI {
         std::vector<std::unique_ptr<Expression>> arguments;
     };
 
-    class Program : public Node {
-    public:
+    struct Program : Node {
         explicit Program(std::vector<std::unique_ptr<Statement>> statements) : statements{std::move(statements)} {}
 
         NodeType getType() override { return NodeType::Program; };
