@@ -53,9 +53,11 @@ int main() {
             GI::Lexer lexer{answer};
             GI::Parser parser{&lexer};
             auto program = parser.parseProgram();
-            std::cout << "Program: " << program->toString() << std::endl;
+            // std::cout << "Program: " << program->toString() << std::endl;
             auto result = GI::eval(program.get(), env);
-            // TODO: show preview of result
+            if (result != nullptr) {
+                std::cout << result->inspect() << std::endl;
+            }
         }
     } catch (const std::runtime_error &re) {
         std::cerr << "Runtime error: " << re.what() << std::endl;

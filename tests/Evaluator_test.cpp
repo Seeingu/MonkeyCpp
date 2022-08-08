@@ -280,9 +280,6 @@ TEST_CASE("if expression", "[evaluator]") {
         auto intObject = dynamic_cast<IntegerObject *>(result.get());
         if (testCase.expected.has_value()) {
             REQUIRE(intObject->value == testCase.expected);
-        } else {
-            // TODO: use optional in evaluator
-            REQUIRE(nullptr == nullptr);
         }
     }
 }
