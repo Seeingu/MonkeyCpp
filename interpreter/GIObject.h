@@ -63,7 +63,7 @@ namespace GI {
     };
 
     struct IntegerObject : GIObject {
-        IntegerObject(int value) : value{value} {}
+        explicit IntegerObject(int value) : value{value} {}
 
         ObjectType getType() override { return ObjectType::INTEGER; }
 
@@ -79,7 +79,7 @@ namespace GI {
     };
 
     struct StringObject : GIObject {
-        StringObject(std::string value) : value{value} {}
+        explicit StringObject(std::string value) : value{value} {}
 
         ObjectType getType() override { return ObjectType::STRING; }
 
@@ -93,7 +93,7 @@ namespace GI {
     };
 
     struct BooleanObject : GIObject {
-        BooleanObject(bool value) : value{value} {}
+        explicit BooleanObject(bool value) : value{value} {}
 
         ObjectType getType() override { return ObjectType::BOOLEAN; }
 
@@ -114,7 +114,7 @@ namespace GI {
     };
 
     struct ReturnValueObject : GIObject {
-        ReturnValueObject(std::shared_ptr<GIObject> value) : value{std::move(value)} {}
+        explicit ReturnValueObject(std::shared_ptr<GIObject> value) : value{std::move(value)} {}
 
         ObjectType getType() override { return ObjectType::RETURN_VALUE; }
 
@@ -206,7 +206,7 @@ namespace GI {
                 elems.push_back(elem->inspect());
             }
             std::stringstream elemsStream;
-            std::copy(elems.begin(), elems.end() - 1, std::ostream_iterator<std::string>(elemsStream, ", "));
+            std::copy(elems.begin(), elems.end(), std::ostream_iterator<std::string>(elemsStream, ", "));
             ss << "[" << elemsStream.str() << "]";
             return ss.str();
         }
@@ -220,19 +220,19 @@ namespace GI {
     };
 
     struct HashObject : GIObject {
-        explicit HashObject(const map<HashKey, HashPair> &pairs) : pairs(pairs) {}
+        explicit HashObject(std::map<HashKey, HashPair> pairs) : pairs{std::move(pairs)} {}
 
         ObjectType getType() override { return ObjectType::HASH; };
 
         std::string inspect() override {
             ostringstream ss;
             ss << "{";
-            vector<string> pairList;
+            std::vector<string> pairList;
             for (auto &p: pairs) {
                 pairList.push_back(p.second.key->inspect() + ": " + p.second.value->inspect());
             }
             ostringstream pairStream;
-            std::copy(pairList.begin(), pairList.end() - 1, std::ostream_iterator<string>(pairStream, ", "));
+            std::copy(pairList.begin(), pairList.end(), std::ostream_iterator<string>(pairStream, ", "));
             ss << pairStream.str();
             ss << "}";
             return ss.str();

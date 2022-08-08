@@ -212,11 +212,18 @@ namespace GI {
             return makeErrorObject("len() arguments size not match: " + std::to_string(arguments.size()));
         }
         auto arg = arguments[0].get();
-        if (arg->getType() == ObjectType::STRING) {
-            auto stringObject = static_cast<StringObject *>(arg);
-            return std::make_unique<IntegerObject>(stringObject->value.size());
-        } else {
-            return makeErrorObject("len() argument type is not support: " + objectTypeNameMapping.map[arg->getType()]);
+        switch (arg->getType()) {
+            case ObjectType::STRING: {
+                auto stringObject = static_cast<StringObject *>(arg);
+                return std::make_unique<IntegerObject>(stringObject->value.size());
+            }
+            case ObjectType::ARRAY: {
+                auto arrayObject = static_cast<ArrayObject *>(arg);
+                return std::make_unique<IntegerObject>(arrayObject->elements.size());
+            }
+            default:
+                return makeErrorObject(
+                        "len() argument type is not support: " + objectTypeNameMapping.map[arg->getType()]);
         }
     }
 
