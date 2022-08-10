@@ -1,3 +1,6 @@
 [submodule "thirdparty/cpp-terminal"]
 	path = thirdparty/cpp-terminal
 	url = https://github.com/jupyter-xeus/cpp-terminal
+[submodule "thirdparty/fmt"]
+	path = thirdparty/fmt
+	url = https://github.com/fmtlib/fmt.git

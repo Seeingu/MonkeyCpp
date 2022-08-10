@@ -1,11 +1,10 @@
 #include <iostream>
 #include <cpp-terminal/input.hpp>
 #include <cpp-terminal/prompt.hpp>
-#include "Lexer.h"
-#include "Environment.h"
-#include "Lexer.h"
-#include "Parser.h"
-#include "Evaluator.h"
+#include "interpreter/Lexer.h"
+#include "interpreter/Environment.h"
+#include "interpreter/Parser.h"
+#include "interpreter/Evaluator.h"
 
 using Term::Key;
 using Term::prompt_multiline;
