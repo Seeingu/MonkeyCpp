@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <sstream>
 #include <string>
-#include <iomanip>
 #include <tuple>
 #include "fmt/core.h"
 
@@ -78,8 +77,9 @@ namespace GC {
         auto offset = 0;
         for (auto &operandWidth: definition->operandWidths) {
             if (operandWidth == 2) {
-                int op = to_integer<int>(instruction[offset]) << 8;
-                op = op | to_integer<int>(instruction[offset + 1]);
+                Instruction ins;
+                ins.assign(instruction.begin() + offset, instruction.end());
+                auto op = readUint16(ins);
                 operands.push_back(op);
             }
             offset += operandWidth;

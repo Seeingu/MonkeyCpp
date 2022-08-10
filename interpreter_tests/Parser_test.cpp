@@ -33,7 +33,11 @@ static void testExpression(std::unique_ptr<Expression> expression, int value) {
 
 static void testExpression(std::unique_ptr<Expression> expression, bool value) {
     auto boolExpr = static_cast<BoolExpression *>(expression.get());
-    REQUIRE(boolExpr->value == value);
+    if (value) {
+        REQUIRE(boolExpr->value);
+    } else {
+        REQUIRE(boolExpr->value == value);
+    }
 }
 
 static void testExpression(std::unique_ptr<Expression> expression, std::string value) {
