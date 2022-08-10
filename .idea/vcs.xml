@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/thirdparty/cpp-terminal" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/thirdparty/fmt" vcs="Git" />
   </component>
 </project>

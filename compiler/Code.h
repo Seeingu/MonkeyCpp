@@ -20,6 +20,7 @@ namespace GC {
         Add,
     };
 
+
     struct Definition {
         string name;
         std::vector<int> operandWidths;
@@ -36,6 +37,12 @@ namespace GC {
                     .name = "OpAdd",
                     .operandWidths = vector<int>{}
             });
+        }
+
+        int readUint16(Instruction instruction) {
+            int op = to_integer<int>(instruction[0]) << 8;
+            op = op | to_integer<int>(instruction[1]);
+            return op;
         }
 
         Instruction makeInstruction(OpCode code, std::vector<int> operands = {});
