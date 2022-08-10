@@ -32,6 +32,10 @@ jobs:
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-      - name: Test
+      - name: Test Interpreter
         working-directory: ${{github.workspace}}/build
-        run: ${{github.workspace}}/build/tests/tests
+        run: ${{github.workspace}}/build/interpreter_tests/interpreter_tests
+
+      - name: Test Compiler
+        working-directory: ${{github.workspace}}/build
+        run: ${{github.workspace}}/build/compiler_tests/compiler_tests
