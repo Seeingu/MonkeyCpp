@@ -7,7 +7,7 @@
 #include <optional>
 #include <stdexcept>
 
-namespace GI {
+namespace Common {
 
     std::string ParserError::toString() {
         return message;

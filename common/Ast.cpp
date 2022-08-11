@@ -5,7 +5,7 @@
 #include "Ast.h"
 #include <sstream>
 
-namespace GI {
+namespace Common {
     std::string Program::toString() {
         std::stringstream ss;
         for (auto &stmt: statements) {

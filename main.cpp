@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cpp-terminal/input.hpp>
 #include <cpp-terminal/prompt.hpp>
-#include "interpreter/Lexer.h"
-#include "interpreter/Environment.h"
-#include "interpreter/Parser.h"
+#include "common/Lexer.h"
+#include "common/Environment.h"
+#include "common/Parser.h"
 #include "interpreter/Evaluator.h"
 
 using Term::Key;
@@ -28,7 +28,7 @@ int main() {
                          "can't catch user input. Exiting...\n";
             return 1;
         }
-        GI::TokenTypeMapping tokenTypeMap;
+        Common::TokenTypeMapping tokenTypeMap;
 
         Terminal term(false, true, false, false);
         std::cout << "Interactive prompt." << std::endl;
@@ -43,14 +43,14 @@ int main() {
                 << std::endl;
         std::vector<std::string> history;
         std::function<bool(std::string)> iscomplete = determine_completeness;
-        auto env = std::make_shared<GI::Environment>();
+        auto env = std::make_shared<Common::Environment>();
         while (true) {
             std::string answer =
                     Term::prompt_multiline(term, "> ", history, iscomplete);
             if (answer.size() == 1 && answer[0] == Key::CTRL + 'd')
                 break;
-            GI::Lexer lexer{answer};
-            GI::Parser parser{&lexer};
+            Common::Lexer lexer{answer};
+            Common::Parser parser{&lexer};
             auto program = parser.parseProgram();
             // std::cout << "Program: " << program->toString() << std::endl;
             auto result = GI::eval(program.get(), env);

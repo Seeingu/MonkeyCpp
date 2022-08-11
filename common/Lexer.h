@@ -9,7 +9,7 @@
 #include <utility>
 #include "Token.h"
 
-namespace GI {
+namespace Common {
 
     class Lexer {
     public:

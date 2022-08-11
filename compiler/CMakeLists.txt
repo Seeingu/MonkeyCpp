@@ -1,4 +1,4 @@
-project(Compiler)
+project(compiler)
 
 set(HEADER_FILES
         Code.h
@@ -10,5 +10,5 @@ set(SOURCE_FILES
         Compiler.cpp
         VM.cpp)
 
-add_library(compiler STATIC ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(compiler fmt::fmt interpreter)
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${PROJECT_NAME} fmt::fmt common)

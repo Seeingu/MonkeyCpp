@@ -11,7 +11,7 @@
 #include <utility>
 #include <variant>
 
-using namespace GI;
+using namespace Common;
 using namespace std;
 
 unique_ptr<Program> testParse(string input) {
@@ -41,7 +41,7 @@ static void testExpression(std::unique_ptr<Expression> expression, bool value) {
 }
 
 static void testExpression(std::unique_ptr<Expression> expression, std::string value) {
-    if (expression->getType() == GI::NodeType::Identifier) {
+    if (expression->getType() == Common::NodeType::Identifier) {
         auto identifier = static_cast<Identifier *>(expression.get());
         REQUIRE(identifier->value == value);
     } else {
@@ -163,10 +163,10 @@ TEST_CASE("array expression", "[parser]") {
     REQUIRE(arrayExpression->elements.size() == 4);
 
     auto elems = std::move(arrayExpression->elements);
-    REQUIRE(elems[0]->getType() == GI::NodeType::IntegerExpression);
-    REQUIRE(elems[1]->getType() == GI::NodeType::StringExpression);
-    REQUIRE(elems[2]->getType() == GI::NodeType::BoolExpression);
-    REQUIRE(elems[3]->getType() == GI::NodeType::InfixExpression);
+    REQUIRE(elems[0]->getType() == Common::NodeType::IntegerExpression);
+    REQUIRE(elems[1]->getType() == Common::NodeType::StringExpression);
+    REQUIRE(elems[2]->getType() == Common::NodeType::BoolExpression);
+    REQUIRE(elems[3]->getType() == Common::NodeType::InfixExpression);
 }
 
 TEST_CASE("empty hashmap", "[parser]") {
@@ -184,8 +184,8 @@ TEST_CASE("hashmap", "[parser]") {
     auto hashExpression = static_cast<HashExpression *>(expressionStatement->expression.get());
     REQUIRE(hashExpression->pairs.size() == 2);
     for (auto &p: hashExpression->pairs) {
-        REQUIRE(p.first->getType() == GI::NodeType::BoolExpression);
-        REQUIRE(p.second->getType() == GI::NodeType::IntegerExpression);
+        REQUIRE(p.first->getType() == Common::NodeType::BoolExpression);
+        REQUIRE(p.second->getType() == Common::NodeType::IntegerExpression);
     }
 }
 

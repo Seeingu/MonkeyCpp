@@ -1,25 +1,10 @@
-project(Interpreter)
+project(interpreter)
 
 set(HEADER_FILES
-        Lexer.h
-        Token.h
-        Ast.h
-        Parser.h
-        Utils.h
-        Evaluator.h
-        Environment.h
-        GIObject.h
-        )
+        Evaluator.h)
 
 set(SOURCE_FILES
-        Lexer.cpp
-        Token.cpp
-        Ast.cpp
-        Utils.cpp
-        Parser.cpp
-        Evaluator.cpp
-        Environment.cpp
-        GIObject.cpp
-        )
+        Evaluator.cpp)
 
-add_library(interpreter STATIC ${SOURCE_FILES} ${HEADER_FILES})
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${PROJECT_NAME} common)

@@ -6,7 +6,7 @@
 #include "catch2/catch_all.hpp"
 #include "Ast.h"
 
-using namespace GI;
+using namespace Common;
 
 TEST_CASE("Ast", "[ast]") {
     SECTION("let expression") {

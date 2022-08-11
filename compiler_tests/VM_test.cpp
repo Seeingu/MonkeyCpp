@@ -68,8 +68,8 @@ TEST_CASE("vm test", "[vm]") {
     };
 
     for (auto &testCase: cases) {
-        GI::Lexer lexer{testCase.input};
-        GI::Parser parser{&lexer};
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
         auto program = parser.parseProgram();
 
         GC::Compiler compiler;
@@ -77,11 +77,11 @@ TEST_CASE("vm test", "[vm]") {
         GC::VM vm{std::move(compiler.constants), compiler.instructions};
         vm.run();
 
-        if (vm.lastStackElem()->getType() == GI::ObjectType::INTEGER) {
-            auto integerObject = static_cast<GI::IntegerObject *>(vm.lastStackElem().get());
+        if (vm.lastStackElem()->getType() == Common::ObjectType::INTEGER) {
+            auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
             REQUIRE(integerObject->value == std::get<int>(testCase.expected));
-        } else if (vm.lastStackElem()->getType() == GI::ObjectType::BOOLEAN) {
-            auto boolObject = static_cast<GI::BooleanObject *>(vm.lastStackElem().get());
+        } else if (vm.lastStackElem()->getType() == Common::ObjectType::BOOLEAN) {
+            auto boolObject = static_cast<Common::BooleanObject *>(vm.lastStackElem().get());
             if (boolObject->value) {
                 REQUIRE(std::get<bool>(testCase.expected));
             } else {

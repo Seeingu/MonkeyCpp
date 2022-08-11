@@ -4,6 +4,6 @@
 
 #include "Token.h"
 
-namespace GI {
+namespace Common {
 
 }

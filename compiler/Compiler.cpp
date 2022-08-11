@@ -9,23 +9,23 @@
 #include <utility>
 
 namespace GC {
-    void Compiler::compile(GI::Node *node) {
+    void Compiler::compile(Common::Node *node) {
         switch (node->getType()) {
-            case GI::NodeType::Program: {
-                auto program = static_cast<GI::Program *>(node);
+            case Common::NodeType::Program: {
+                auto program = static_cast<Common::Program *>(node);
 
                 for (auto &stmt: program->statements) {
                     compile(stmt.get());
                 }
                 return;
             }
-            case GI::NodeType::ExpressionStatement: {
-                compile(static_cast<GI::ExpressionStatement *>(node)->expression.get());
+            case Common::NodeType::ExpressionStatement: {
+                compile(static_cast<Common::ExpressionStatement *>(node)->expression.get());
                 emit(OpCode::Pop);
                 return;
             }
-            case GI::NodeType::InfixExpression: {
-                auto expr = static_cast<GI::InfixExpression *>(node);
+            case Common::NodeType::InfixExpression: {
+                auto expr = static_cast<Common::InfixExpression *>(node);
                 if (expr->infixOperator == "<") {
                     compile(expr->rightExpression.get());
                     compile(expr->leftExpression.get());
@@ -52,8 +52,8 @@ namespace GC {
                 emit(infixActions[expr->infixOperator]);
                 return;
             }
-            case GI::NodeType::PrefixExpression: {
-                auto prefixExpr = static_cast<GI::PrefixExpression *>(node);
+            case Common::NodeType::PrefixExpression: {
+                auto prefixExpr = static_cast<Common::PrefixExpression *>(node);
                 compile(prefixExpr->rightExpression.get());
                 if (prefixExpr->prefixOperator == "!") {
                     emit(OpCode::Bang);
@@ -64,15 +64,15 @@ namespace GC {
                 }
                 return;
             }
-            case GI::NodeType::IntegerExpression: {
-                auto integerExpr = static_cast<GI::IntegerExpression *>(node);
+            case Common::NodeType::IntegerExpression: {
+                auto integerExpr = static_cast<Common::IntegerExpression *>(node);
                 emit(OpCode::Constant, {
-                        addConstant(make_unique<GI::IntegerObject>(integerExpr->value))
+                        addConstant(make_unique<Common::IntegerObject>(integerExpr->value))
                 });
                 return;
             }
-            case GI::NodeType::BoolExpression: {
-                auto boolExpr = static_cast<GI::BoolExpression *>(node);
+            case Common::NodeType::BoolExpression: {
+                auto boolExpr = static_cast<Common::BoolExpression *>(node);
                 emit(boolExpr->value ? OpCode::True : OpCode::False);
                 return;
             }
@@ -88,7 +88,7 @@ namespace GC {
         return addInstruction(ins);
     }
 
-    int Compiler::addConstant(shared_ptr<GI::GIObject> object) {
+    int Compiler::addConstant(shared_ptr<Common::GIObject> object) {
         constants.push_back(std::move(object));
         return int(constants.size()) - 1;
     }

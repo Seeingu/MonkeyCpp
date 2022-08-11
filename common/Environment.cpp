@@ -4,7 +4,7 @@
 
 #include "Environment.h"
 
-namespace GI {
+namespace Common {
     void Environment::setValue(std::string name, std::shared_ptr<GIObject> value) {
         store[name] = std::move(value);
     }
