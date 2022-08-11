@@ -16,15 +16,19 @@ namespace GC {
 
     class VM {
     public:
-        VM(vector<shared_ptr<GI::GIObject>> constants, Instruction instructions) : constants{std::move(constants)},
-                                                                                   instructions{
-                                                                                           std::move(instructions)} {
+        VM(vector<shared_ptr<GI::GIObject>> constants,
+           Instruction instructions
+        ) : constants{std::move(constants)},
+            instructions{std::move(instructions)} {
             stack.reserve(STACK_SIZE);
         }
 
         void run();
 
         shared_ptr<GI::GIObject> stackTop();
+
+        shared_ptr<GI::GIObject> lastStackElem();
+
 
     private:
         vector<shared_ptr<GI::GIObject>> constants;
@@ -37,6 +41,7 @@ namespace GC {
         vector<shared_ptr<GI::GIObject>> stack;
         int sp{0};
         Code code{};
+        GI::ObjectTypeMapping objectTypeMapping;
     };
 }
 

@@ -21,13 +21,81 @@ TEST_CASE("compile", "[compiler]") {
 
     GC::Code code{};
 
-
     vector<TestCase> cases = {
-            {"1 + 2", vector<int>{1, 2}, vector<GC::Instruction>{
+            {"1 + 2",  vector<int>{1, 2}, vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
-                    code.makeInstruction(GC::OpCode::Add)
-            }}
+                    code.makeInstruction(GC::OpCode::Add),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {"1 - 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::Sub),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1 < 2",  vector<int>{2, 1}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::GreaterThan),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1 > 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::GreaterThan),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+
+            {
+             "1 * 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::Mul),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1 / 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::Div),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1; 2",   vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Pop),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1 == 2", vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::Equal),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "1 != 2", vector<int>{1, 2}, vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::NotEqual),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "-2",     vector<int>{2},    vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::Minus),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
+            {
+             "!true",  vector<int>{},     vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::True),
+                    code.makeInstruction(GC::OpCode::Bang),
+                    code.makeInstruction(GC::OpCode::Pop),
+            }},
     };
 
     for (auto &testCase: cases) {
