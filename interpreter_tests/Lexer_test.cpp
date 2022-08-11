@@ -135,14 +135,12 @@ TEST_CASE("Lexer", "[lexer]") {
             {Common::TokenType::_EOF,       ""},
     };
 
-    Common::TokenTypeMapping mapping;
-    auto nameMapping = mapping.map;
 
     Common::Lexer lexer{input};
     for (auto &token: tokens) {
         auto t = lexer.nextToken();
 //        std::cout << "Index: " << i << std::endl;
-        REQUIRE(nameMapping[t.type] == nameMapping[token.type]);
+        REQUIRE(t.type == token.type);
         REQUIRE(t.literal == token.value);
     }
 }

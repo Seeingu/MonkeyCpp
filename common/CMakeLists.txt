@@ -17,3 +17,4 @@ set(SOURCE_FILES
         GIObject.cpp)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES})
+target_link_libraries(${PROJECT_NAME} fmt magic_enum)

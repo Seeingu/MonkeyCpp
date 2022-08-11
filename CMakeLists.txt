@@ -20,6 +20,7 @@ set(CPPTERMINAL_ENABLE_INSTALL OFF CACHE BOOL "cpp-terminal install command" FOR
 add_subdirectory(thirdparty/cpp-terminal)
 
 add_subdirectory(thirdparty/fmt)
+add_subdirectory(thirdparty/magic_enum)
 
 Include(FetchContent)
 FetchContent_Declare(

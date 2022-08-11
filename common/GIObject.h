@@ -11,7 +11,6 @@
 #include "Ast.h"
 #include "Environment.h"
 
-#define OBJECT_TYPE_MAP(name) map[Common::ObjectType::name] = #name
 
 namespace Common {
     class Environment;
@@ -29,25 +28,6 @@ namespace Common {
         FUNCTION,
         ARRAY,
         HASH
-    };
-
-    class ObjectTypeMapping {
-    public:
-        ObjectTypeMapping() {
-
-            OBJECT_TYPE_MAP(_NULL);
-            OBJECT_TYPE_MAP(ERROR);
-            OBJECT_TYPE_MAP(INTEGER);
-            OBJECT_TYPE_MAP(STRING);
-            OBJECT_TYPE_MAP(BOOLEAN);
-            OBJECT_TYPE_MAP(RETURN_VALUE);
-            OBJECT_TYPE_MAP(FUNCTION);
-            OBJECT_TYPE_MAP(BUILTIN);
-            OBJECT_TYPE_MAP(ARRAY);
-            OBJECT_TYPE_MAP(HASH);
-        }
-
-        std::map<ObjectType, std::string> map;
     };
 
     struct GIObject {

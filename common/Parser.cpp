@@ -6,6 +6,9 @@
 #include <sstream>
 #include <optional>
 #include <stdexcept>
+#include "fmt/format.h"
+#include "magic_enum.hpp"
+
 
 namespace Common {
 
@@ -74,8 +77,8 @@ namespace Common {
 
     void Parser::peekMatchError(TokenType tokenType) {
         std::stringstream ss{};
-        ss << "expected next token to be " << tokenTypeMapping.map[tokenType] << ", ";
-        ss << "got " << tokenTypeMapping.map[peekToken.type] << " instead";
+        ss << fmt::format("expected next token to be {}, ", magic_enum::enum_name(tokenType));
+        ss << fmt::format("got {} instead", magic_enum::enum_name(peekToken.type));
         errors.push_back(std::make_unique<ParserError>(peekToken, ss.str()));
     }
 

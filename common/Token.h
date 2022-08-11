@@ -9,7 +9,6 @@
 #include <map>
 #include <utility>
 
-#define TOKEN_TYPE_MAP(name) map[Common::TokenType::name] = #name
 
 namespace Common {
     enum class TokenType {
@@ -62,45 +61,6 @@ namespace Common {
         Token(TokenType type, std::string literal) : type{type}, literal{std::move(literal)} {}
     };
 
-    class TokenTypeMapping {
-    public:
-        TokenTypeMapping() {
-
-            TOKEN_TYPE_MAP(ILLEGAL);
-            TOKEN_TYPE_MAP(_EOF);
-            TOKEN_TYPE_MAP(IDENTIFIER);
-            TOKEN_TYPE_MAP(INT);
-            TOKEN_TYPE_MAP(STRING);
-            TOKEN_TYPE_MAP(ASSIGN);
-            TOKEN_TYPE_MAP(PLUS);
-            TOKEN_TYPE_MAP(MINUS);
-            TOKEN_TYPE_MAP(BANG);
-            TOKEN_TYPE_MAP(ASTERISK);
-            TOKEN_TYPE_MAP(SLASH);
-            TOKEN_TYPE_MAP(LT);
-            TOKEN_TYPE_MAP(GT);
-            TOKEN_TYPE_MAP(EQ);
-            TOKEN_TYPE_MAP(NOT_EQ);
-            TOKEN_TYPE_MAP(COMMA);
-            TOKEN_TYPE_MAP(SEMICOLON);
-            TOKEN_TYPE_MAP(LPAREN);
-            TOKEN_TYPE_MAP(RPAREN);
-            TOKEN_TYPE_MAP(LBRACE);
-            TOKEN_TYPE_MAP(RBRACE);
-            TOKEN_TYPE_MAP(FUNCTION);
-            TOKEN_TYPE_MAP(LET);
-            TOKEN_TYPE_MAP(TRUE);
-            TOKEN_TYPE_MAP(FALSE);
-            TOKEN_TYPE_MAP(IF);
-            TOKEN_TYPE_MAP(ELSE);
-            TOKEN_TYPE_MAP(RETURN);
-            TOKEN_TYPE_MAP(LBRACKET);
-            TOKEN_TYPE_MAP(RBRACKET);
-            TOKEN_TYPE_MAP(COLON);
-        }
-
-        std::map<Common::TokenType, std::string> map;
-    };
 
 }
 
