@@ -10,6 +10,11 @@
 #include <map>
 #include <cstddef>
 
+#define OP_DEF(name) definitions.emplace(GC::OpCode::name, GC::Definition{ \
+        #name, \
+        vector<int>{} \
+});
+
 namespace GC {
     using namespace std;
 
@@ -18,6 +23,17 @@ namespace GC {
     enum class OpCode : std::underlying_type_t<std::byte> {
         Constant = 0,
         Add,
+        Sub,
+        Mul,
+        Div,
+        True,
+        False,
+        Pop,
+        Equal,
+        NotEqual,
+        GreaterThan,
+        Minus,
+        Bang
     };
 
 
@@ -30,13 +46,21 @@ namespace GC {
     public:
         Code() {
             definitions.emplace(OpCode::Constant, Definition{
-                    .name = "OpConstant",
-                    .operandWidths = vector<int>{2}
+                    "Constant",
+                    vector<int>{2}
             });
-            definitions.emplace(OpCode::Add, Definition{
-                    .name = "OpAdd",
-                    .operandWidths = vector<int>{}
-            });
+            OP_DEF(Add);
+            OP_DEF(Sub);
+            OP_DEF(Mul);
+            OP_DEF(Div);
+            OP_DEF(Pop);
+            OP_DEF(True);
+            OP_DEF(False);
+            OP_DEF(Equal);
+            OP_DEF(NotEqual);
+            OP_DEF(GreaterThan);
+            OP_DEF(Minus);
+            OP_DEF(Bang);
         }
 
         int readUint16(Instruction instruction) {

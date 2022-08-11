@@ -2,12 +2,11 @@
 <project version="4">
   <component name="CMakeWorkspace" PROJECT_DIR="$PROJECT_DIR$" />
   <component name="CidrRootsConfiguration">
-    <libraryRoots>
-      <file path="$PROJECT_DIR$/thirdparty/cpp-terminal" />
-    </libraryRoots>
     <excludeRoots>
       <file path="$PROJECT_DIR$/build" />
       <file path="$PROJECT_DIR$/cmake-build-debug" />
+      <file path="$PROJECT_DIR$/thirdparty/cpp-terminal" />
+      <file path="$PROJECT_DIR$/thirdparty/fmt" />
     </excludeRoots>
   </component>
 </project>
