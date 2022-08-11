@@ -5,7 +5,10 @@
 //
 
 #include "VM.h"
+#include "magic_enum.hpp"
+#include "fmt/format.h"
 #include <string>
+
 
 namespace GC {
 
@@ -73,7 +76,8 @@ namespace GC {
                 case OpCode::GreaterThan: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    if (left->getType() == Common::ObjectType::INTEGER && right->getType() == Common::ObjectType::INTEGER) {
+                    if (left->getType() == Common::ObjectType::INTEGER &&
+                        right->getType() == Common::ObjectType::INTEGER) {
                         auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
                         auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
                         switch (opCode) {
@@ -91,7 +95,8 @@ namespace GC {
                                 break;
                         }
                     } else {
-                        if (left->getType() == Common::ObjectType::BOOLEAN && right->getType() == Common::ObjectType::BOOLEAN) {
+                        if (left->getType() == Common::ObjectType::BOOLEAN &&
+                            right->getType() == Common::ObjectType::BOOLEAN) {
                             auto leftValue = static_cast<Common::BooleanObject *>(left.get())->value;
                             auto rightValue = static_cast<Common::BooleanObject *>(right.get())->value;
                             switch (opCode) {
@@ -108,7 +113,8 @@ namespace GC {
                                     break;
                             }
                         } else {
-                            throw "unsupported infix operation on type: " + objectTypeMapping.map[left->getType()];
+                            throw fmt::format("unsupported infix operation on type: {}",
+                                              magic_enum::enum_name(left->getType()));
                         }
 
                     }
@@ -128,7 +134,8 @@ namespace GC {
                 case OpCode::Minus: {
                     auto operand = stackPop();
                     if (operand->getType() != Common::ObjectType::INTEGER) {
-                        throw "unsupported type for negation: " + objectTypeMapping.map[operand->getType()];
+                        throw fmt::format("unsupported type for negation: {}",
+                                          magic_enum::enum_name(operand->getType()));
                     }
                     auto integerObject = static_cast<Common::IntegerObject *>(operand.get());
                     stackPush(make_shared<Common::IntegerObject>(-integerObject->value));

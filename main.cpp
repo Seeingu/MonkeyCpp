@@ -28,7 +28,6 @@ int main() {
                          "can't catch user input. Exiting...\n";
             return 1;
         }
-        Common::TokenTypeMapping tokenTypeMap;
 
         Terminal term(false, true, false, false);
         std::cout << "Interactive prompt." << std::endl;

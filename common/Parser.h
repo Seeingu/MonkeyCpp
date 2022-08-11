@@ -111,9 +111,6 @@ namespace Common {
         Token peekToken{TokenType::START, ""};
         std::vector<std::unique_ptr<ParserError>> errors;
         std::map<TokenType, Precedence> precedences;
-
-        TokenTypeMapping tokenTypeMapping;
-
     };
 }
 

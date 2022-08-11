@@ -11,4 +11,4 @@ set(SOURCE_FILES
         VM.cpp)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES} ${HEADER_FILES})
-target_link_libraries(${PROJECT_NAME} fmt::fmt common)
+target_link_libraries(${PROJECT_NAME} fmt common magic_enum)

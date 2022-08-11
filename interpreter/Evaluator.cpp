@@ -7,12 +7,13 @@
 //
 
 #include "Evaluator.h"
+#include "fmt/format.h"
+#include "magic_enum.hpp"
 #include <typeindex>
 #include <typeinfo>
 #include <iostream>
 
 namespace GI {
-    static ObjectTypeMapping objectTypeNameMapping{};
 
     bool isError(GIObject *object) {
         return object != nullptr && object->getType() == ObjectType::ERROR;
@@ -73,7 +74,8 @@ namespace GI {
 
     std::unique_ptr<GIObject> evalMinusPrefixOperatorExpression(const std::shared_ptr<GIObject> &object) {
         if (object->getType() != ObjectType::INTEGER) {
-            return std::make_unique<ErrorObject>("unknown operator: -" + objectTypeNameMapping.map[object->getType()]);
+            return std::make_unique<ErrorObject>(
+                    fmt::format("unknown operator: -{}", magic_enum::enum_name(object->getType())));
         }
         auto integerObject = static_cast<IntegerObject *>(object.get());
         return std::make_unique<IntegerObject>(-integerObject->value);
@@ -87,7 +89,7 @@ namespace GI {
             return evalMinusPrefixOperatorExpression(right);
         } else {
             return std::make_unique<ErrorObject>(
-                    "unknown operator: " + prefixOperator + objectTypeNameMapping.map[right->getType()]);
+                    fmt::format("unknown operator: {}{}", prefixOperator, magic_enum::enum_name(right->getType())));
         }
     }
 
@@ -146,8 +148,8 @@ namespace GI {
                         const std::shared_ptr<GIObject> &right) {
         if (left->getType() != right->getType()) {
             return std::make_unique<ErrorObject>(
-                    "type mismatch: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
-                    objectTypeNameMapping.map[right->getType()]);
+                    fmt::format("type mismatch: {} {} {}", magic_enum::enum_name(left->getType()), infixOperator,
+                                magic_enum::enum_name(right->getType())));
         }
         switch (left->getType()) {
             case ObjectType::INTEGER:
@@ -180,8 +182,9 @@ namespace GI {
                 break;
         }
         return makeErrorObject(
-                "unknown operator: " + objectTypeNameMapping.map[left->getType()] + " " + infixOperator + " " +
-                objectTypeNameMapping.map[right->getType()]);
+                fmt::format(
+                        "unknown operator: {} {} {}", magic_enum::enum_name(left->getType()), infixOperator,
+                        magic_enum::enum_name(right->getType())));
     }
 
     std::shared_ptr<GIObject> evalIfExpression(IfExpression *node, const std::shared_ptr<Environment> &environment) {
@@ -223,7 +226,7 @@ namespace GI {
             }
             default:
                 return makeErrorObject(
-                        "len() argument type is not support: " + objectTypeNameMapping.map[arg->getType()]);
+                        fmt::format("len() argument type is not support: {}", magic_enum::enum_name(arg->getType())));
         }
     }
 
@@ -281,7 +284,7 @@ namespace GI {
                 return makeErrorObject("identifier not found: " + identifier->value);
             }
             if (fun->getType() != ObjectType::FUNCTION) {
-                return makeErrorObject(objectTypeNameMapping.map[fun->getType()] + "is not a function");
+                return makeErrorObject(fmt::format("{} is not a function", magic_enum::enum_name(fun->getType())));
             }
             auto functionObject = static_cast<FunctionObject *>(fun.get());
             return evalFunction(functionObject);
@@ -361,7 +364,8 @@ namespace GI {
                         return nullptr;
                     }
                 }
-                return makeErrorObject("index operator not supported: " + objectTypeNameMapping.map[left->getType()]);
+                return makeErrorObject(
+                        fmt::format("index operator not supported: {}", magic_enum::enum_name(left->getType())));
             }
             case NodeType::PrefixExpression: {
                 auto prefixExpression = static_cast<PrefixExpression *>(node);

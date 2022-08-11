@@ -41,7 +41,6 @@ namespace GC {
         vector<shared_ptr<Common::GIObject>> stack;
         int sp{0};
         Code code{};
-        Common::ObjectTypeMapping objectTypeMapping;
     };
 }
 
