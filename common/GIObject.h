@@ -11,9 +11,9 @@
 #include "Ast.h"
 #include "Environment.h"
 
-#define OBJECT_TYPE_MAP(name) map[GI::ObjectType::name] = #name
+#define OBJECT_TYPE_MAP(name) map[Common::ObjectType::name] = #name
 
-namespace GI {
+namespace Common {
     class Environment;
 
     using HashKey = std::size_t;

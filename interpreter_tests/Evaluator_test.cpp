@@ -12,6 +12,7 @@
 #include <utility>
 
 using namespace std;
+using namespace Common;
 using namespace GI;
 
 std::shared_ptr<GIObject> testEval(std::string input) {
@@ -208,7 +209,7 @@ TEST_CASE("hashmap", "[evaluator]") {
 	}
     )""";
     auto result = testEval(input);
-    REQUIRE(result->getType() == GI::ObjectType::HASH);
+    REQUIRE(result->getType() == Common::ObjectType::HASH);
 
     auto hashObject = static_cast<HashObject *>(result.get());
     REQUIRE(hashObject->pairs.size() == 6);

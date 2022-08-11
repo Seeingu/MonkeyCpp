@@ -99,8 +99,8 @@ TEST_CASE("compile", "[compiler]") {
     };
 
     for (auto &testCase: cases) {
-        GI::Lexer lexer{testCase.input};
-        GI::Parser parser{&lexer};
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
         auto program = parser.parseProgram();
 
         GC::Compiler compiler;
@@ -112,7 +112,7 @@ TEST_CASE("compile", "[compiler]") {
         }
         REQUIRE(ins == compiler.instructions);
         for (int i = 0; i < compiler.constants.size(); i++) {
-            auto value = static_cast<GI::IntegerObject *>(compiler.constants[i].get())->value;
+            auto value = static_cast<Common::IntegerObject *>(compiler.constants[i].get())->value;
             REQUIRE(value == testCase.expectedConstants[i]);
         }
 

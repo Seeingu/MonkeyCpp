@@ -3,7 +3,10 @@ project(GoInterpreter)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(GoInterpreter main.cpp)
+add_executable(${PROJECT_NAME} main.cpp)
+
+include_directories(common)
+add_subdirectory(common)
 
 include_directories(interpreter)
 add_subdirectory(interpreter)

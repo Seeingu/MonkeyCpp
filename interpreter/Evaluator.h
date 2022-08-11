@@ -7,9 +7,10 @@
 
 #include "Ast.h"
 #include "Environment.h"
-#include "Utils.h"
 
 namespace GI {
+    using namespace Common;
+
     std::shared_ptr<GIObject> eval(
             Node *node,
             const std::shared_ptr<Environment> &environment

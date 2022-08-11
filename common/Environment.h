@@ -8,7 +8,7 @@
 #include <vector>
 #include "GIObject.h"
 
-namespace GI {
+namespace Common {
     class GIObject;
 
     class Environment {

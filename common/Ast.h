@@ -14,7 +14,7 @@
 
 using namespace std;
 
-namespace GI {
+namespace Common {
     enum class NodeType {
         Identifier,
         IntegerExpression,

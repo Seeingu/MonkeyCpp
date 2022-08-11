@@ -4,5 +4,5 @@
 
 #include "GIObject.h"
 
-namespace GI {
+namespace Common {
 }

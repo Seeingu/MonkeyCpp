@@ -9,14 +9,14 @@
 
 namespace GC {
 
-    shared_ptr<GI::GIObject> VM::stackTop() {
+    shared_ptr<Common::GIObject> VM::stackTop() {
         if (sp == 0) {
             return nullptr;
         }
         return stack[sp - 1];
     }
 
-    shared_ptr<GI::GIObject> VM::lastStackElem() {
+    shared_ptr<Common::GIObject> VM::lastStackElem() {
         return stack[sp];
     }
 
@@ -40,8 +40,8 @@ namespace GC {
                 case OpCode::Add: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    auto leftValue = static_cast<GI::IntegerObject *>(left.get())->value;
-                    auto rightValue = static_cast<GI::IntegerObject *>(right.get())->value;
+                    auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
+                    auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
 
                     int result;
                     switch (opCode) {
@@ -61,45 +61,45 @@ namespace GC {
                             // unreachable
                             break;
                     }
-                    stackPush(make_shared<GI::IntegerObject>(result));
+                    stackPush(make_shared<Common::IntegerObject>(result));
                     break;
                 }
                 case OpCode::True:
                 case OpCode::False:
-                    stackPush(make_shared<GI::BooleanObject>(opCode == OpCode::True));
+                    stackPush(make_shared<Common::BooleanObject>(opCode == OpCode::True));
                     break;
                 case OpCode::Equal:
                 case OpCode::NotEqual:
                 case OpCode::GreaterThan: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    if (left->getType() == GI::ObjectType::INTEGER && right->getType() == GI::ObjectType::INTEGER) {
-                        auto leftValue = static_cast<GI::IntegerObject *>(left.get())->value;
-                        auto rightValue = static_cast<GI::IntegerObject *>(right.get())->value;
+                    if (left->getType() == Common::ObjectType::INTEGER && right->getType() == Common::ObjectType::INTEGER) {
+                        auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
+                        auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
                         switch (opCode) {
                             case OpCode::Equal:
-                                stackPush(make_shared<GI::BooleanObject>(leftValue == rightValue));
+                                stackPush(make_shared<Common::BooleanObject>(leftValue == rightValue));
                                 break;
                             case OpCode::NotEqual:
-                                stackPush(make_shared<GI::BooleanObject>(leftValue != rightValue));
+                                stackPush(make_shared<Common::BooleanObject>(leftValue != rightValue));
                                 break;
                             case OpCode::GreaterThan:
-                                stackPush(make_shared<GI::BooleanObject>(leftValue > rightValue));
+                                stackPush(make_shared<Common::BooleanObject>(leftValue > rightValue));
                                 break;
                             default:
                                 // unreachable
                                 break;
                         }
                     } else {
-                        if (left->getType() == GI::ObjectType::BOOLEAN && right->getType() == GI::ObjectType::BOOLEAN) {
-                            auto leftValue = static_cast<GI::BooleanObject *>(left.get())->value;
-                            auto rightValue = static_cast<GI::BooleanObject *>(right.get())->value;
+                        if (left->getType() == Common::ObjectType::BOOLEAN && right->getType() == Common::ObjectType::BOOLEAN) {
+                            auto leftValue = static_cast<Common::BooleanObject *>(left.get())->value;
+                            auto rightValue = static_cast<Common::BooleanObject *>(right.get())->value;
                             switch (opCode) {
                                 case OpCode::Equal:
-                                    stackPush(make_shared<GI::BooleanObject>(leftValue == rightValue));
+                                    stackPush(make_shared<Common::BooleanObject>(leftValue == rightValue));
                                     break;
                                 case OpCode::NotEqual:
-                                    stackPush(make_shared<GI::BooleanObject>(leftValue != rightValue));
+                                    stackPush(make_shared<Common::BooleanObject>(leftValue != rightValue));
                                     break;
                                 case OpCode::GreaterThan:
                                     throw "unsupported greater than instruction on bool";
@@ -116,22 +116,22 @@ namespace GC {
                 }
                 case OpCode::Bang: {
                     auto operand = stackPop();
-                    if (operand->getType() == GI::ObjectType::BOOLEAN) {
-                        auto boolObject = static_cast<GI::BooleanObject *>(operand.get());
-                        stackPush(make_shared<GI::BooleanObject>(!boolObject->value));
+                    if (operand->getType() == Common::ObjectType::BOOLEAN) {
+                        auto boolObject = static_cast<Common::BooleanObject *>(operand.get());
+                        stackPush(make_shared<Common::BooleanObject>(!boolObject->value));
                     } else {
-                        stackPush(make_shared<GI::BooleanObject>(false));
+                        stackPush(make_shared<Common::BooleanObject>(false));
                     }
 
                     break;
                 }
                 case OpCode::Minus: {
                     auto operand = stackPop();
-                    if (operand->getType() != GI::ObjectType::INTEGER) {
+                    if (operand->getType() != Common::ObjectType::INTEGER) {
                         throw "unsupported type for negation: " + objectTypeMapping.map[operand->getType()];
                     }
-                    auto integerObject = static_cast<GI::IntegerObject *>(operand.get());
-                    stackPush(make_shared<GI::IntegerObject>(-integerObject->value));
+                    auto integerObject = static_cast<Common::IntegerObject *>(operand.get());
+                    stackPush(make_shared<Common::IntegerObject>(-integerObject->value));
                     break;
                 }
                 case OpCode::Pop:
@@ -145,7 +145,7 @@ namespace GC {
     }
 
 
-    void VM::stackPush(shared_ptr<GI::GIObject> object) {
+    void VM::stackPush(shared_ptr<Common::GIObject> object) {
         if (sp >= STACK_SIZE) {
             throw "Stack overflow";
         }
@@ -158,7 +158,7 @@ namespace GC {
     }
 
 
-    shared_ptr<GI::GIObject> VM::stackPop() {
+    shared_ptr<Common::GIObject> VM::stackPop() {
         auto object = stack[sp - 1];
         sp--;
         return object;

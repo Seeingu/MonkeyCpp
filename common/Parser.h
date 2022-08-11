@@ -12,7 +12,7 @@
 #include "Lexer.h"
 #include "Ast.h"
 
-namespace GI {
+namespace Common {
     using namespace std;
     enum class Precedence {
         LOWEST = 0,

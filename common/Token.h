@@ -9,9 +9,9 @@
 #include <map>
 #include <utility>
 
-#define TOKEN_TYPE_MAP(name) map[GI::TokenType::name] = #name
+#define TOKEN_TYPE_MAP(name) map[Common::TokenType::name] = #name
 
-namespace GI {
+namespace Common {
     enum class TokenType {
         START = -2,
         ILLEGAL = -1,
@@ -99,7 +99,7 @@ namespace GI {
             TOKEN_TYPE_MAP(COLON);
         }
 
-        std::map<GI::TokenType, std::string> map;
+        std::map<Common::TokenType, std::string> map;
     };
 
 }

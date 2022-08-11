@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 
-namespace GI {
+namespace Common {
 
     std::map<std::string, TokenType> initializeKeywords() {
         std::map<std::string, TokenType> keywordsMap;

@@ -17,17 +17,17 @@ namespace GC {
     public:
         Compiler() {}
 
-        void compile(GI::Node *node);
+        void compile(Common::Node *node);
 
         Instruction instructions;
-        vector <shared_ptr<GI::GIObject>> constants;
+        vector <shared_ptr<Common::GIObject>> constants;
 
     private:
         int emit(OpCode opCode, vector<int> operands = {});
 
         int addInstruction(Instruction instruction);
 
-        int addConstant(shared_ptr<GI::GIObject> object);
+        int addConstant(shared_ptr<Common::GIObject> object);
 
         Code code{};
     };
