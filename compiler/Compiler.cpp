@@ -8,6 +8,7 @@
 #include "fmt/core.h"
 #include "magic_enum.hpp"
 
+#include <algorithm>
 #include <utility>
 
 #define DUMB_INSTRUCTION_ADDRESS 9999
@@ -134,6 +135,42 @@ namespace GC {
                 emit(OpCode::Constant, {
                         addConstant(make_unique<Common::StringObject>(stringExpr->value))
                 });
+                break;
+            }
+            case Common::NodeType::ArrayExpression: {
+                auto arrayExpr = static_cast<Common::ArrayExpression *>(node);
+                for (auto &item: arrayExpr->elements) {
+                    compile(item.get());
+                }
+
+                emit(OpCode::Array, {int(arrayExpr->elements.size())});
+                break;
+            }
+            case Common::NodeType::HashExpression: {
+                auto hashExpr = static_cast<Common::HashExpression *>(node);
+                int size = hashExpr->pairs.size() * 2;
+                using HashPair = pair<Common::Expression *, Common::Expression *>;
+                vector<HashPair> pairs{};
+                for (auto &p: hashExpr->pairs) {
+                    pairs.emplace_back(p.first.get(), p.second.get());
+                }
+                std::sort(pairs.begin(), pairs.end(), [](const HashPair &p1, const HashPair &p2) {
+                    return p1.first->toString() < p2.first->toString();
+                });
+                for (auto &p: pairs) {
+                    compile(p.first);
+                    compile(p.second);
+                }
+
+                emit(OpCode::Hash, {size});
+                break;
+            }
+            case Common::NodeType::IndexExpression: {
+                auto indexExpr = static_cast<Common::IndexExpression *>(node);
+                compile(indexExpr->leftExpression.get());
+                compile(indexExpr->indexExpression.get());
+
+                emit(OpCode::Index);
                 break;
             }
             default:

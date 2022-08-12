@@ -154,6 +154,15 @@ TEST_CASE("prefix expression", "[parser]") {
 
 };
 
+TEST_CASE("empty array", "[parser]") {
+    auto input = "[];";
+    auto stmt = testSingleStatement(input);
+    auto expressionStatement = static_cast<ExpressionStatement *>(stmt.get());
+
+    auto arrayExpression = static_cast<ArrayExpression *>(expressionStatement->expression.get());
+    REQUIRE(arrayExpression->elements.size() == 0);
+}
+
 TEST_CASE("array expression", "[parser]") {
     auto input = "[1, \"str\", true, 2 * 2];";
     auto stmt = testSingleStatement(input);

@@ -6,6 +6,9 @@
 
 #include <vector>
 #include <memory>
+#include <algorithm>
+#include <iostream>
+#include <iterator>
 #include <variant>
 #include "catch2/catch_all.hpp"
 #include "Lexer.h"
@@ -89,6 +92,7 @@ TEST_CASE("vm test", "[vm]") {
             {R"("monkey")",                                 "monkey"},
             {R"("mon" + "key")",                            "monkey"},
             {R"("mon" + "key" + "banana")",                 "monkeybanana"},
+
     };
 
     for (auto &testCase: cases) {
@@ -118,7 +122,13 @@ TEST_CASE("vm test", "[vm]") {
             }
             case Common::ObjectType::STRING: {
                 auto stringObject = static_cast<Common::StringObject *>(vm.lastStackElem().get());
-                REQUIRE(stringObject->value == std::get<string>(testCase.expected));
+                try {
+                    auto stringValue = stringObject->value;
+                    auto expectedValue = std::get<string>(testCase.expected);
+                    REQUIRE(stringValue == expectedValue);
+                } catch (std::bad_variant_access const &ex) {
+                    std::cout << ex.what() << ": " << testCase.input << endl;
+                }
                 break;
             }
             default: {
@@ -128,6 +138,113 @@ TEST_CASE("vm test", "[vm]") {
         }
     }
 
+}
+
+TEST_CASE("test vm array", "[vm]") {
+    struct TestCase {
+        string input;
+        vector<int> expected;
+    };
+
+    vector<TestCase> cases = {
+            {"[]",                    {}},
+            {"[1, 2, 3]",             {1, 2,  3}},
+            {"[1 + 2, 3 * 4, 5 + 6]", {3, 12, 11}},
+    };
+
+    for (auto &testCase: cases) {
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
+        auto program = parser.parseProgram();
+
+        GC::Compiler compiler;
+        compiler.compile(program.get());
+        GC::VM vm{std::move(compiler.constants), compiler.instructions};
+        vm.run();
+
+        auto arrayObject = static_cast<Common::ArrayObject *>(vm.lastStackElem().get());
+        vector<int> result{};
+        std::transform(arrayObject->elements.begin(), arrayObject->elements.end(), back_inserter(result),
+                       [](const shared_ptr<Common::GIObject> &item) {
+                           auto obj = static_cast<Common::IntegerObject *>(item.get());
+                           return obj->value;
+                       });
+
+        REQUIRE(result == testCase.expected);
+    }
+}
+
+
+TEST_CASE("test vm hash", "[vm]") {
+    struct TestCase {
+        string input;
+        std::map<int, int> expected;
+    };
+
+    vector<TestCase> cases = {
+            {"{}",                           {}},
+            {"{1: 2, 3: 4}",                 {{1, 2}, {3, 4}}},
+            {"{1 + 1: 2 * 2, 3 + 3: 4 * 4}", {{2, 4}, {6, 16}}},
+    };
+
+    for (auto &testCase: cases) {
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
+        auto program = parser.parseProgram();
+
+        GC::Compiler compiler;
+        compiler.compile(program.get());
+        GC::VM vm{std::move(compiler.constants), compiler.instructions};
+        vm.run();
+
+        auto hashObject = static_cast<Common::HashObject *>(vm.lastStackElem().get());
+        std::map<int, int> result{};
+        for (auto &hashPair: hashObject->pairs) {
+            auto pair = hashPair.second;
+            auto key = static_cast<Common::IntegerObject *>(pair.key.get())->value;
+            auto value = static_cast<Common::IntegerObject *>(pair.value.get())->value;
+            result[key] = value;
+        }
+        REQUIRE(result == testCase.expected);
+    }
+}
+
+TEST_CASE("test vm index", "[vm]") {
+    struct TestCase {
+        string input;
+        variant<int, nullptr_t> expected;
+    };
+
+    vector<TestCase> cases = {
+            {"[1, 2, 3][1]",      2},
+            {"[1, 2, 3][0 + 2]",  3},
+            {"[[1, 1, 1]][0][0]", 1},
+            {"[][0]",             nullptr},
+            {"[1, 2, 3][99]",     nullptr},
+            {"[1][-1]",           nullptr},
+            {"{1: 1, 2: 2}[1]",   1},
+            {"{1: 1, 2: 2}[2]",   2},
+            {"{1: 1}[0]",         nullptr},
+            {"{}[0]",             nullptr},
+    };
+
+    for (auto &testCase: cases) {
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
+        auto program = parser.parseProgram();
+
+        GC::Compiler compiler;
+        compiler.compile(program.get());
+        GC::VM vm{std::move(compiler.constants), compiler.instructions};
+        vm.run();
+
+        if (vm.lastStackElem()->getType() == Common::ObjectType::INTEGER) {
+            auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
+            REQUIRE(integerObject->value == std::get<int>(testCase.expected));
+        } else {
+            REQUIRE(std::get<nullptr_t>(testCase.expected) == nullptr);
+        }
+    }
 }
 
 #pragma clang diagnostic pop

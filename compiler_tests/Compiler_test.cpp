@@ -14,7 +14,7 @@
 
 using namespace std;
 
-TEST_CASE("compile", "[compiler]") {
+TEST_CASE("test compile", "[compiler]") {
     struct TestCase {
         string input;
         vector<variant<int, string>> expectedConstants;
@@ -201,6 +201,110 @@ TEST_CASE("compile", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Constant, {1}),
                             code.makeInstruction(GC::OpCode::Add),
                             code.makeInstruction(GC::OpCode::Pop),
+                    }
+            },
+            {
+             "[]",
+                    {},
+                    {
+                            code.makeInstruction(GC::OpCode::Array, {0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+             "[1, 2, 3]",
+                    {1,     2,  3},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Array, {3}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+             "[1 + 2, 3 - 4, 5 * 6]",
+                    {1,     2,  3, 4, 5, 6},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Add),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Sub),
+                            code.makeInstruction(GC::OpCode::Constant, {4}),
+                            code.makeInstruction(GC::OpCode::Constant, {5}),
+                            code.makeInstruction(GC::OpCode::Mul),
+                            code.makeInstruction(GC::OpCode::Array, {3}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+
+            {
+             "{}",
+                    {},
+                    {
+                            code.makeInstruction(GC::OpCode::Hash, {0}),
+                            code.makeInstruction(GC::OpCode::Pop),
+                    }
+            },
+            {
+             "{1: 2, 3: 4, 5: 6}",
+                    {1,     2,  3, 4, 5, 6},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Constant, {4}),
+                            code.makeInstruction(GC::OpCode::Constant, {5}),
+                            code.makeInstruction(GC::OpCode::Hash, {6}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+             "{1: 2 + 3, 4: 5 - 6}",
+                    {1,     2,  3, 4, 5, 6},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Add),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Constant, {4}),
+                            code.makeInstruction(GC::OpCode::Constant, {5}),
+                            code.makeInstruction(GC::OpCode::Sub),
+                            code.makeInstruction(GC::OpCode::Hash, {4}),
+                            code.makeInstruction(GC::OpCode::Pop)
+
+                    }
+            },
+
+            {"[1, 2, 3][1 + 1]",
+                    {1,     2,  3, 1, 1},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Array, {3}),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Constant, {4}),
+                            code.makeInstruction(GC::OpCode::Add),
+                            code.makeInstruction(GC::OpCode::Index),
+                            code.makeInstruction(GC::OpCode::Pop),
+                    }},
+            {
+             "{1: 2}[2 - 1]",
+                    {1,     2,  2, 1},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Hash, {2}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Sub),
+                            code.makeInstruction(GC::OpCode::Index),
+                            code.makeInstruction(GC::OpCode::Pop)
                     }
             }
 
