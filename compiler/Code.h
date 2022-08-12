@@ -40,7 +40,9 @@ namespace GC {
         Bang,
         Jump,
         JumpNotTruthy,
-        _Null
+        _Null,
+        GetGlobal,
+        SetGlobal,
     };
 
 
@@ -68,6 +70,8 @@ namespace GC {
             OP_DEF_SIZE(Jump, 2);
             OP_DEF_SIZE(JumpNotTruthy, 2);
             OP_DEF(_Null);
+            OP_DEF_SIZE(GetGlobal, 2);
+            OP_DEF_SIZE(SetGlobal, 2);
         }
 
         int readUint16(Instruction instruction) {

@@ -37,9 +37,7 @@ namespace GC {
             auto opCode = OpCode(instruction);
             switch (opCode) {
                 case OpCode::Constant: {
-                    Instruction ins;
-                    ins.assign(instructions.begin() + i + 1, instructions.end());
-                    int constIndex = code.readUint16(ins);
+                    int constIndex = readUint16(i + 1);
                     i += 2;
 
                     stackPush(constants[constIndex]);
@@ -153,16 +151,12 @@ namespace GC {
                     stackPop();
                     break;
                 case OpCode::Jump: {
-                    Instruction ins;
-                    ins.assign(instructions.begin() + i + 1, instructions.end());
-                    int insIndex = code.readUint16(ins);
+                    auto insIndex = readUint16(i + 1);
                     i = insIndex - 1;
                     break;
                 }
                 case OpCode::JumpNotTruthy: {
-                    Instruction ins;
-                    ins.assign(instructions.begin() + i + 1, instructions.end());
-                    int insIndex = code.readUint16(ins);
+                    auto insIndex = readUint16(i + 1);
                     i += 2;
 
                     auto condition = stackPop();
@@ -173,6 +167,25 @@ namespace GC {
                 }
                 case OpCode::_Null: {
                     stackPush(make_shared<Common::NullObject>());
+                    break;
+                }
+                case OpCode::SetGlobal: {
+                    auto globalIndex = readUint16(i + 1);
+                    i += 2;
+
+                    if (globals.size() == globalIndex) {
+                        globals.push_back(stackPop());
+                    } else {
+                        globals[globalIndex] = stackPop();
+                    }
+
+                    break;
+                }
+                case OpCode::GetGlobal: {
+                    auto globalIndex = readUint16(i + 1);
+                    i += 2;
+
+                    stackPush(globals[globalIndex]);
                     break;
                 }
                 default:
@@ -187,6 +200,7 @@ namespace GC {
         if (sp >= STACK_SIZE) {
             throw "Stack overflow";
         }
+        // TODO: use intuitive actions
         if (stack.size() == sp) {
             stack.push_back(object);
         } else {
@@ -200,6 +214,13 @@ namespace GC {
         auto object = stack[sp - 1];
         sp--;
         return object;
+    }
+
+
+    int VM::readUint16(int index) {
+        Instruction ins;
+        ins.assign(instructions.begin() + index, instructions.end());
+        return code.readUint16(ins);
     }
 }
 

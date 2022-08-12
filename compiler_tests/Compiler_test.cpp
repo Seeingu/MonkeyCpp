@@ -134,7 +134,26 @@ TEST_CASE("compile", "[compiler]") {
                     code.makeInstruction(GC::OpCode::Constant, {2}),
                     // 0017
                     code.makeInstruction(GC::OpCode::Pop)
+            }},
+            {
+             "let one = 1; let two = 2;",           vector<int>{1, 2},         vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    code.makeInstruction(GC::OpCode::SetGlobal, {1}),
+            }},
+            {
+             R"(let one = 1;
+			let two = one;
+			two;)",                    vector<int>{1},            vector<GC::Instruction>{
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                    code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                    code.makeInstruction(GC::OpCode::SetGlobal, {1}),
+                    code.makeInstruction(GC::OpCode::GetGlobal, {1}),
+                    code.makeInstruction(GC::OpCode::Pop)
             }}
+
     };
 
     for (auto &testCase: cases) {

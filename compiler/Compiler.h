@@ -8,6 +8,7 @@
 #include <vector>
 #include "Ast.h"
 #include "Code.h"
+#include "SymbolTable.h"
 #include "GIObject.h"
 
 namespace GC {
@@ -41,6 +42,7 @@ namespace GC {
         EmittedInstruction lastInstruction{};
         EmittedInstruction previousInstruction{};
 
+        SymbolTable symbolTable{};
         Code code{};
     };
 }
