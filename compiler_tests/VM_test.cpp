@@ -18,7 +18,7 @@ using namespace std;
 TEST_CASE("vm test", "[vm]") {
     struct TestCase {
         string input;
-        variant<int, bool, nullptr_t> expected;
+        variant<int, bool, string, nullptr_t> expected;
     };
 
     vector<TestCase> cases = {
@@ -84,6 +84,11 @@ TEST_CASE("vm test", "[vm]") {
             {"let one = 1; one",                            1},
             {"let one = 1; let two = 2; one + two",         3},
             {"let one = 1; let two = one + one; one + two", 3},
+
+            // string
+            {R"("monkey")",                                 "monkey"},
+            {R"("mon" + "key")",                            "monkey"},
+            {R"("mon" + "key" + "banana")",                 "monkeybanana"},
     };
 
     for (auto &testCase: cases) {
@@ -96,18 +101,30 @@ TEST_CASE("vm test", "[vm]") {
         GC::VM vm{std::move(compiler.constants), compiler.instructions};
         vm.run();
 
-        if (vm.lastStackElem()->getType() == Common::ObjectType::INTEGER) {
-            auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
-            REQUIRE(integerObject->value == std::get<int>(testCase.expected));
-        } else if (vm.lastStackElem()->getType() == Common::ObjectType::BOOLEAN) {
-            auto boolObject = static_cast<Common::BooleanObject *>(vm.lastStackElem().get());
-            if (boolObject->value) {
-                REQUIRE(std::get<bool>(testCase.expected));
-            } else {
-                REQUIRE(boolObject->value == std::get<bool>(testCase.expected));
+        switch (vm.lastStackElem()->getType()) {
+            case Common::ObjectType::INTEGER: {
+                auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
+                REQUIRE(integerObject->value == std::get<int>(testCase.expected));
+                break;
             }
-        } else {
-            REQUIRE(std::get<nullptr_t>(testCase.expected) == nullptr);
+            case Common::ObjectType::BOOLEAN: {
+                auto boolObject = static_cast<Common::BooleanObject *>(vm.lastStackElem().get());
+                if (boolObject->value) {
+                    REQUIRE(std::get<bool>(testCase.expected));
+                } else {
+                    REQUIRE(boolObject->value == std::get<bool>(testCase.expected));
+                }
+                break;
+            }
+            case Common::ObjectType::STRING: {
+                auto stringObject = static_cast<Common::StringObject *>(vm.lastStackElem().get());
+                REQUIRE(stringObject->value == std::get<string>(testCase.expected));
+                break;
+            }
+            default: {
+                REQUIRE(std::get<nullptr_t>(testCase.expected) == nullptr);
+                break;
+            }
         }
     }
 
