@@ -16,7 +16,7 @@ namespace GC {
 
     class VM {
     public:
-        VM(vector<shared_ptr<Common::GIObject>> constants,
+        VM(vector <shared_ptr<Common::GIObject>> constants,
            Instruction instructions
         ) : constants{std::move(constants)},
             instructions{std::move(instructions)} {
@@ -31,16 +31,20 @@ namespace GC {
 
 
     private:
-        vector<shared_ptr<Common::GIObject>> constants;
-
         void stackPush(shared_ptr<Common::GIObject> object);
 
         shared_ptr<Common::GIObject> stackPop();
 
+        int readUint16(int index);
+
+        vector <shared_ptr<Common::GIObject>> constants;
+
         Instruction instructions;
-        vector<shared_ptr<Common::GIObject>> stack;
+        vector <shared_ptr<Common::GIObject>> stack;
         int sp{0};
         Code code{};
+
+        vector <shared_ptr<Common::GIObject>> globals;
     };
 }
 

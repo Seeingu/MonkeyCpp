@@ -111,7 +111,24 @@ namespace GC {
 
                 break;
             }
+            case Common::NodeType::LetStatement: {
+                auto letStmt = static_cast<Common::LetStatement *>(node);
+                compile(letStmt->value.get());
 
+                auto symbol = symbolTable.define(letStmt->name->value);
+                emit(OpCode::SetGlobal, {symbol.index});
+                break;
+            }
+            case Common::NodeType::Identifier: {
+                auto id = static_cast<Common::Identifier *>(node);
+                auto symbol = symbolTable.resolve(id->value);
+                if (symbol.has_value()) {
+                    emit(OpCode::GetGlobal, {symbol.value().index});
+                } else {
+                    throw fmt::format("undefined variable {}", id->value);
+                }
+                break;
+            }
             default:
                 throw fmt::format("unsupported node type: {}", magic_enum::enum_name(node->getType()));
         }

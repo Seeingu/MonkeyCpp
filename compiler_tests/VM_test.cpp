@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-static-cast-downcast"
 //
 // Created by seeu on 2022/8/9.
 //
@@ -77,6 +79,11 @@ TEST_CASE("vm test", "[vm]") {
             {"if (1 > 2) { 10 }",                           nullptr},
             {"if (false) { 10 }",                           nullptr},
             {"if ((if (false) { 10 })) { 10 } else { 20 }", 20},
+
+            // variable
+            {"let one = 1; one",                            1},
+            {"let one = 1; let two = 2; one + two",         3},
+            {"let one = 1; let two = one + one; one + two", 3},
     };
 
     for (auto &testCase: cases) {
@@ -105,3 +112,5 @@ TEST_CASE("vm test", "[vm]") {
     }
 
 }
+
+#pragma clang diagnostic pop
