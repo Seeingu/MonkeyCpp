@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <iostream>
 #include "catch2/catch_all.hpp"
 #include "Code.h"
 #include "Lexer.h"
@@ -22,27 +23,27 @@ TEST_CASE("compile", "[compiler]") {
     GC::Code code{};
 
     vector<TestCase> cases = {
-            {"1 + 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+            {"1 + 2",                               vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Add),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
-            {"1 - 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+            {"1 - 2",                               vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Sub),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1 < 2",  vector<int>{2, 1}, vector<GC::Instruction>{
+             "1 < 2",                               vector<int>{2, 1},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::GreaterThan),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1 > 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+             "1 > 2",                               vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::GreaterThan),
@@ -50,52 +51,90 @@ TEST_CASE("compile", "[compiler]") {
             }},
 
             {
-             "1 * 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+             "1 * 2",                               vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Mul),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1 / 2",  vector<int>{1, 2}, vector<GC::Instruction>{
+             "1 / 2",                               vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Div),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1; 2",   vector<int>{1, 2}, vector<GC::Instruction>{
+             "1; 2",                                vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Pop),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1 == 2", vector<int>{1, 2}, vector<GC::Instruction>{
+             "1 == 2",                              vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::Equal),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "1 != 2", vector<int>{1, 2}, vector<GC::Instruction>{
+             "1 != 2",                              vector<int>{1, 2},         vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Constant, {1}),
                     code.makeInstruction(GC::OpCode::NotEqual),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "-2",     vector<int>{2},    vector<GC::Instruction>{
+             "-2",                                  vector<int>{2},            vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::Constant, {0}),
                     code.makeInstruction(GC::OpCode::Minus),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
             {
-             "!true",  vector<int>{},     vector<GC::Instruction>{
+             "!true",                               vector<int>{},             vector<GC::Instruction>{
                     code.makeInstruction(GC::OpCode::True),
                     code.makeInstruction(GC::OpCode::Bang),
                     code.makeInstruction(GC::OpCode::Pop),
             }},
+            {
+             "if (true) { 10 }; 3333;",             vector<int>{10, 3333},     vector<GC::Instruction>{
+                    // 0000
+                    code.makeInstruction(GC::OpCode::True),
+                    // 0001
+                    code.makeInstruction(GC::OpCode::JumpNotTruthy, {10}),
+                    // 0004
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    // 0007
+                    code.makeInstruction(GC::OpCode::Jump, {11}),
+                    // 0010
+                    code.makeInstruction(GC::OpCode::_Null),
+                    // 0011
+                    code.makeInstruction(GC::OpCode::Pop),
+                    // 0012
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    // 0015
+                    code.makeInstruction(GC::OpCode::Pop)
+            }},
+            {
+             "if (true) { 10 } else { 20 }; 3333;", vector<int>{10, 20, 3333}, vector<GC::Instruction>{
+                    // 0000
+                    code.makeInstruction(GC::OpCode::True),
+                    // 0001
+                    code.makeInstruction(GC::OpCode::JumpNotTruthy, {10}),
+                    // 0004
+                    code.makeInstruction(GC::OpCode::Constant, {0}),
+                    // 0007
+                    code.makeInstruction(GC::OpCode::Jump, {13}),
+                    // 0010
+                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                    // 0013
+                    code.makeInstruction(GC::OpCode::Pop),
+                    // 0014
+                    code.makeInstruction(GC::OpCode::Constant, {2}),
+                    // 0017
+                    code.makeInstruction(GC::OpCode::Pop)
+            }}
     };
 
     for (auto &testCase: cases) {

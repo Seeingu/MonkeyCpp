@@ -5,8 +5,12 @@
 //
 
 #include "Compiler.h"
+#include "fmt/core.h"
+#include "magic_enum.hpp"
 
 #include <utility>
+
+#define DUMB_INSTRUCTION_ADDRESS 9999
 
 namespace GC {
     void Compiler::compile(Common::Node *node) {
@@ -76,16 +80,57 @@ namespace GC {
                 emit(boolExpr->value ? OpCode::True : OpCode::False);
                 return;
             }
+            case Common::NodeType::IfExpression: {
+                auto ifExpr = static_cast<Common::IfExpression *>(node);
+                compile(ifExpr->condition.get());
+
+                auto jumpNotTruthyPos = emit(OpCode::JumpNotTruthy, {DUMB_INSTRUCTION_ADDRESS});
+
+                compile(ifExpr->consequence.get());
+
+                auto jumpPos = emit(OpCode::Jump, {DUMB_INSTRUCTION_ADDRESS});
+                int afterConsequencePos = instructions.size();
+                changeOperand(jumpNotTruthyPos, {afterConsequencePos});
+
+                if (ifExpr->alternative == nullptr) {
+                    emit(OpCode::_Null);
+                } else {
+                    compile(ifExpr->alternative.get());
+                }
+
+                int afterAlternativePos = instructions.size();
+                changeOperand(jumpPos, {afterAlternativePos});
+                break;
+            }
+            case Common::NodeType::BlockStatement: {
+                auto blockStmt = static_cast<Common::BlockStatement *>(node);
+                for (auto &stmt: blockStmt->statements) {
+                    compile(stmt.get());
+                }
+                instructions.pop_back();
+
+                break;
+            }
 
             default:
-                break;
+                throw fmt::format("unsupported node type: {}", magic_enum::enum_name(node->getType()));
         }
 
     }
 
     int Compiler::emit(OpCode opCode, vector<int> operands) {
         auto ins = code.makeInstruction(opCode, std::move(operands));
-        return addInstruction(ins);
+        auto pos = addInstruction(ins);
+
+        // setLastInstruction(opCode, pos);
+
+        return pos;
+    }
+
+
+    void Compiler::setLastInstruction(OpCode code, int position) {
+        previousInstruction = lastInstruction;
+        lastInstruction = EmittedInstruction{code, position};
     }
 
     int Compiler::addConstant(shared_ptr<Common::GIObject> object) {
@@ -97,6 +142,16 @@ namespace GC {
         auto pos = instructions.size();
         instructions.insert(instructions.end(), instruction.begin(), instruction.end());
         return int(pos);
+    }
+
+    void Compiler::changeOperand(int position, vector<int> operand) {
+        auto opCode = OpCode(instructions[position]);
+        auto ins = code.makeInstruction(opCode, operand);
+
+        for (int i = 0; i < ins.size(); i++) {
+            instructions[position + i] = ins[i];
+        }
+
     }
 }
 

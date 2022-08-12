@@ -6,7 +6,7 @@
 #include "Lexer.h"
 
 TEST_CASE("Lexer", "[lexer]") {
-    const char *input = R"""(
+    const char *input = R"(
     let five = 5;
     let ten = 10;
 
@@ -31,7 +31,7 @@ TEST_CASE("Lexer", "[lexer]") {
     "foo bar"
     [1, 2];
     {"foo": "bar"}
-                 )""";
+                 )";
 
     struct Expected {
         Common::TokenType type;

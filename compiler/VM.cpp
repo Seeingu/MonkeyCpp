@@ -11,6 +11,14 @@
 
 
 namespace GC {
+    bool isTruthy(shared_ptr<Common::GIObject> object) {
+        if (object->getType() == Common::ObjectType::BOOLEAN) {
+            return static_cast<Common::BooleanObject *>(object.get())->value;
+        } else if (object->getType() == Common::ObjectType::_NULL) {
+            return false;
+        }
+        return true;
+    }
 
     shared_ptr<Common::GIObject> VM::stackTop() {
         if (sp == 0) {
@@ -144,6 +152,29 @@ namespace GC {
                 case OpCode::Pop:
                     stackPop();
                     break;
+                case OpCode::Jump: {
+                    Instruction ins;
+                    ins.assign(instructions.begin() + i + 1, instructions.end());
+                    int insIndex = code.readUint16(ins);
+                    i = insIndex - 1;
+                    break;
+                }
+                case OpCode::JumpNotTruthy: {
+                    Instruction ins;
+                    ins.assign(instructions.begin() + i + 1, instructions.end());
+                    int insIndex = code.readUint16(ins);
+                    i += 2;
+
+                    auto condition = stackPop();
+                    if (!isTruthy(condition)) {
+                        i = insIndex - 1;
+                    }
+                    break;
+                }
+                case OpCode::_Null: {
+                    stackPush(make_shared<Common::NullObject>());
+                    break;
+                }
                 default:
                     throw "unsupported instruction on vm: " + to_string(to_integer<int>(instruction));
             }
