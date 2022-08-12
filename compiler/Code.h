@@ -14,6 +14,10 @@
         #name, \
         vector<int>{} \
 });
+#define OP_DEF_SIZE(name, size) definitions.emplace(GC::OpCode::name, GC::Definition{ \
+        #name, \
+        vector<int>{size} \
+});
 
 namespace GC {
     using namespace std;
@@ -33,7 +37,10 @@ namespace GC {
         NotEqual,
         GreaterThan,
         Minus,
-        Bang
+        Bang,
+        Jump,
+        JumpNotTruthy,
+        _Null
     };
 
 
@@ -45,10 +52,7 @@ namespace GC {
     class Code {
     public:
         Code() {
-            definitions.emplace(OpCode::Constant, Definition{
-                    "Constant",
-                    vector<int>{2}
-            });
+            OP_DEF_SIZE(Constant, 2);
             OP_DEF(Add);
             OP_DEF(Sub);
             OP_DEF(Mul);
@@ -61,6 +65,9 @@ namespace GC {
             OP_DEF(GreaterThan);
             OP_DEF(Minus);
             OP_DEF(Bang);
+            OP_DEF_SIZE(Jump, 2);
+            OP_DEF_SIZE(JumpNotTruthy, 2);
+            OP_DEF(_Null);
         }
 
         int readUint16(Instruction instruction) {

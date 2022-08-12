@@ -13,6 +13,11 @@
 namespace GC {
     using namespace std;
 
+    struct EmittedInstruction {
+        OpCode code;
+        int position;
+    };
+
     class Compiler {
     public:
         Compiler() {}
@@ -20,14 +25,21 @@ namespace GC {
         void compile(Common::Node *node);
 
         Instruction instructions;
-        vector <shared_ptr<Common::GIObject>> constants;
+        vector<shared_ptr<Common::GIObject>> constants;
 
     private:
         int emit(OpCode opCode, vector<int> operands = {});
 
+        void setLastInstruction(OpCode code, int position);
+
+        void changeOperand(int position, vector<int> operand);
+
         int addInstruction(Instruction instruction);
 
         int addConstant(shared_ptr<Common::GIObject> object);
+
+        EmittedInstruction lastInstruction{};
+        EmittedInstruction previousInstruction{};
 
         Code code{};
     };

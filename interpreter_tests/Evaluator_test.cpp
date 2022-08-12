@@ -31,7 +31,7 @@ void testExpression(std::string input, E expected) {
 }
 
 TEST_CASE("eval", "[evaluator]") {
-    auto input = R"""(
+    auto input = R"(
     let five = 5;
     let ten = 10;
 
@@ -41,7 +41,7 @@ TEST_CASE("eval", "[evaluator]") {
 
     let result = add(five, ten);
     result;
-    )""";
+    )";
     auto result = testEval(input);
     result->inspect();
 }
@@ -197,7 +197,7 @@ TEST_CASE("eval array index overflow", "[evaluator]") {
 }
 
 TEST_CASE("hashmap", "[evaluator]") {
-    auto input = R"""(
+    auto input = R"(
     let two = "two";
 	{
 		"one": 10 - 9,
@@ -207,7 +207,7 @@ TEST_CASE("hashmap", "[evaluator]") {
 		true: 5,
 		false: 6
 	}
-    )""";
+    )";
     auto result = testEval(input);
     REQUIRE(result->getType() == Common::ObjectType::HASH);
 
@@ -298,7 +298,7 @@ TEST_CASE("return statement", "[evaluator]") {
             {"9; return 2 * 5; 9;",        10},
             {"if (10 > 1) { return 10; }", 10},
             {
-             R"""(
+             R"(
                     if (10 > 1) {
                         if (10 > 1) {
                             return 10;
@@ -306,26 +306,26 @@ TEST_CASE("return statement", "[evaluator]") {
 
                         return 1;
                     }
-                    )""",
+                    )",
                                            10,
             },
             {
-             R"""(
+             R"(
                     let f = fn(x) {
                         return x;
                         x + 10;
                     };
-                    f(10);)""",
+                    f(10);)",
                                            10,
             },
             {
-             R"""(
+             R"(
                     let f = fn(x) {
                         let result = x + 10;
                         return result;
                         return 10;
                     };
-                    f(10);)""",
+                    f(10);)",
                                            20,
             },
     };
