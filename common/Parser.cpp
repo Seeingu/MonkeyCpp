@@ -186,6 +186,7 @@ namespace Common {
         std::vector<std::unique_ptr<Expression>> elements{};
 
         if (peekToken.type == TokenType::RBRACKET) {
+            nextToken(); // consume `]`
             return std::make_unique<ArrayExpression>(token, std::move(elements));
         }
         nextToken();

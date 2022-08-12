@@ -203,6 +203,68 @@ namespace GC {
                     stackPush(globals[globalIndex]);
                     break;
                 }
+                case OpCode::Array: {
+                    auto numElements = readUint16(i + 1);
+                    i += 2;
+
+                    vector<shared_ptr<Common::GIObject>> elements;
+                    for (auto index = 0; index < numElements; index++) {
+                        elements.push_back(stack[sp - numElements + index]);
+                    }
+                    stackPush(make_shared<Common::ArrayObject>(std::move(elements)));
+
+                    break;
+                }
+                case OpCode::Hash: {
+                    auto numElements = readUint16(i + 1);
+                    i += 2;
+
+                    std::map<Common::HashKey, Common::HashPair> pairs{};
+                    for (auto index = 0; index < numElements; index += 2) {
+                        int keyIndex = sp - numElements + index;
+                        auto key = stack[keyIndex];
+                        auto value = stack[keyIndex + 1];
+
+                        auto hashKey = key->hash();
+                        pairs[hashKey] = {
+                                key,
+                                value
+                        };
+                    }
+
+                    stackPush(make_shared<Common::HashObject>(pairs));
+                    break;
+                }
+                case OpCode::Index: {
+                    auto index = stackPop();
+                    auto object = stackPop();
+
+                    if (object->getType() == Common::ObjectType::ARRAY &&
+                        index->getType() == Common::ObjectType::INTEGER) {
+                        auto arrayObject = static_cast<Common::ArrayObject *>(object.get());
+                        auto indexValue = static_cast<Common::IntegerObject *>(index.get())->value;
+
+                        if (indexValue < 0 || indexValue >= arrayObject->elements.size()) {
+                            stackPush(make_shared<Common::NullObject>());
+                            break;
+                        }
+                        auto elem = arrayObject->elements[indexValue];
+                        stackPush(elem);
+
+                    } else if (object->getType() == Common::ObjectType::HASH) {
+                        auto hashObject = static_cast<Common::HashObject *>(object.get());
+                        auto hashKey = index->hash();
+                        if (hashObject->pairs.contains(hashKey)) {
+                            stackPush(hashObject->pairs[hashKey].value);
+                        } else {
+                            stackPush(make_shared<Common::NullObject>());
+                        }
+                    } else {
+                        throw fmt::format("unsupported index instruction on type: {}",
+                                          magic_enum::enum_name(object->getType()));
+                    }
+                    break;
+                }
                 default:
                     throw "unsupported instruction on vm: " + to_string(to_integer<int>(instruction));
             }
