@@ -21,12 +21,12 @@ namespace GC {
                 for (auto &stmt: program->statements) {
                     compile(stmt.get());
                 }
-                return;
+                break;
             }
             case Common::NodeType::ExpressionStatement: {
                 compile(static_cast<Common::ExpressionStatement *>(node)->expression.get());
                 emit(OpCode::Pop);
-                return;
+                break;
             }
             case Common::NodeType::InfixExpression: {
                 auto expr = static_cast<Common::InfixExpression *>(node);
@@ -54,7 +54,7 @@ namespace GC {
                     throw "unsupported operator: " + expr->infixOperator;
                 }
                 emit(infixActions[expr->infixOperator]);
-                return;
+                break;
             }
             case Common::NodeType::PrefixExpression: {
                 auto prefixExpr = static_cast<Common::PrefixExpression *>(node);
@@ -66,19 +66,19 @@ namespace GC {
                 } else {
                     throw "unsupported operator: " + prefixExpr->prefixOperator;
                 }
-                return;
+                break;
             }
             case Common::NodeType::IntegerExpression: {
                 auto integerExpr = static_cast<Common::IntegerExpression *>(node);
                 emit(OpCode::Constant, {
                         addConstant(make_unique<Common::IntegerObject>(integerExpr->value))
                 });
-                return;
+                break;
             }
             case Common::NodeType::BoolExpression: {
                 auto boolExpr = static_cast<Common::BoolExpression *>(node);
                 emit(boolExpr->value ? OpCode::True : OpCode::False);
-                return;
+                break;
             }
             case Common::NodeType::IfExpression: {
                 auto ifExpr = static_cast<Common::IfExpression *>(node);
@@ -127,6 +127,13 @@ namespace GC {
                 } else {
                     throw fmt::format("undefined variable {}", id->value);
                 }
+                break;
+            }
+            case Common::NodeType::StringExpression: {
+                auto stringExpr = static_cast<Common::StringExpression *>(node);
+                emit(OpCode::Constant, {
+                        addConstant(make_unique<Common::StringObject>(stringExpr->value))
+                });
                 break;
             }
             default:

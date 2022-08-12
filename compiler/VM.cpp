@@ -7,6 +7,7 @@
 #include "VM.h"
 #include "magic_enum.hpp"
 #include "fmt/format.h"
+#include <cstddef>
 #include <string>
 
 
@@ -49,28 +50,42 @@ namespace GC {
                 case OpCode::Add: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
-                    auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
+                    if (left->getType() == Common::ObjectType::INTEGER &&
+                        right->getType() == Common::ObjectType::INTEGER) {
+                        auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
+                        auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
 
-                    int result;
-                    switch (opCode) {
-                        case OpCode::Add:
-                            result = leftValue + rightValue;
-                            break;
-                        case OpCode::Sub:
-                            result = leftValue - rightValue;
-                            break;
-                        case OpCode::Mul:
-                            result = leftValue * rightValue;
-                            break;
-                        case OpCode::Div:
-                            result = leftValue / rightValue;
-                            break;
-                        default:
-                            // unreachable
-                            break;
+                        int result;
+                        switch (opCode) {
+                            case OpCode::Add:
+                                result = leftValue + rightValue;
+                                break;
+                            case OpCode::Sub:
+                                result = leftValue - rightValue;
+                                break;
+                            case OpCode::Mul:
+                                result = leftValue * rightValue;
+                                break;
+                            case OpCode::Div:
+                                result = leftValue / rightValue;
+                                break;
+                            default:
+                                // unreachable
+                                break;
+
+                        }
+                        stackPush(make_shared<Common::IntegerObject>(result));
+                    } else if (left->getType() == Common::ObjectType::STRING &&
+                               right->getType() == Common::ObjectType::STRING) {
+                        auto leftValue = static_cast<Common::StringObject *>(left.get())->value;
+                        auto rightValue = static_cast<Common::StringObject *>(right.get())->value;
+                        if (opCode == OpCode::Add) {
+                            stackPush(make_shared<Common::StringObject>(leftValue + rightValue));
+                        } else {
+                            throw fmt::format("unsupported binary operation {} on string",
+                                              to_string(int(opCode)));
+                        }
                     }
-                    stackPush(make_shared<Common::IntegerObject>(result));
                     break;
                 }
                 case OpCode::True:

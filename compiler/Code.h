@@ -43,6 +43,9 @@ namespace GC {
         _Null,
         GetGlobal,
         SetGlobal,
+        Array,
+        Hash,
+        Index
     };
 
 
@@ -72,6 +75,9 @@ namespace GC {
             OP_DEF(_Null);
             OP_DEF_SIZE(GetGlobal, 2);
             OP_DEF_SIZE(SetGlobal, 2);
+            OP_DEF_SIZE(Array, 2);
+            OP_DEF_SIZE(Hash, 2);
+            OP_DEF(Index);
         }
 
         int readUint16(Instruction instruction) {
