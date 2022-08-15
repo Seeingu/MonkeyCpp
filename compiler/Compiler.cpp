@@ -137,10 +137,19 @@ namespace GC {
                 auto id = static_cast<Common::Identifier *>(node);
                 auto symbol = symbolTableManager.resolve(id->value);
                 if (symbol.has_value()) {
-                    if (symbol->scope == SymbolScope::Global) {
-                        emit(OpCode::GetGlobal, {symbol.value().index});
-                    } else {
-                        emit(OpCode::GetLocal, {symbol.value().index});
+                    switch (symbol->scope) {
+                        case SymbolScope::Global:
+                            emit(OpCode::GetGlobal, {symbol.value().index});
+                            break;
+                        case SymbolScope::Builtin:
+                            emit(OpCode::GetBuiltin, {symbol.value().index});
+                            break;
+                        case SymbolScope::Local:
+                            emit(OpCode::GetLocal, {symbol.value().index});
+                            break;
+                        default:
+                            // unreachable
+                            break;
                     }
                 } else {
                     throw fmt::format("undefined variable {}", id->value);

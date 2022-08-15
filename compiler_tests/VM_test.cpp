@@ -248,38 +248,41 @@ TEST_CASE("test vm function", "[vm]") {
             {
                     R"(let fivePlusTen = fn() { 5 + 10; };
                         fivePlusTen();)",
-                    15
+                                             15
             },
             {
                     R"(let one = fn() { 1; };
 		            let two = fn() { 2; };
 		            one() + two())",
-                    3
+                                             3
             },
             {
                     R"(let a = fn() { 1 };
 		            let b = fn() { a() + 1 };
 		            let c = fn() { b() + 1 };
 		            c();)",
-                    3
+                                             3
             },
             {
                     R"(let earlyExit = fn() { return 99; 100; };
                     earlyExit();)",
-                    99
+                                             99
             },
             {
                     R"(let noReturn = fn() { };noReturn();)",
-                    0
+                                             0 // null
             },
             {
                     R"(let one = fn() { let one = 1; one };one();)",
-                    1
+                                             1
             },
             {
                     R"(let identity = fn(a) { a; };identity(4);)",
-                    4
-            }
+                                             4
+            },
+            {       R"(len(""))",            0},
+            {       R"(len("four"))",        4},
+            {       R"(len("hello world"))", 11},
     };
 
     for (auto &testCase: cases) {

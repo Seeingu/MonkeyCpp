@@ -26,6 +26,14 @@ namespace GC {
         return s;
     }
 
+
+    Symbol SymbolTableManager::defineBuiltin(int index, string name) {
+        auto s = Symbol{name, SymbolScope::Builtin, index};
+        auto st = &symbolTables.back();
+        st->store[name] = s;
+        return s;
+    }
+
     optional<Symbol> SymbolTableManager::resolve(const string &name) {
         for (auto s = symbolTables.rbegin(); s != symbolTables.rend(); s++) {
             if (s->store.contains(name)) {

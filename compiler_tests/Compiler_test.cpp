@@ -309,6 +309,16 @@ TEST_CASE("test compile", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Index),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
+            },
+            {
+             "len([]);",
+                    {},
+                    {
+                            code.makeInstruction(GC::OpCode::GetBuiltin, {0}),
+                            code.makeInstruction(GC::OpCode::Array, {0}),
+                            code.makeInstruction(GC::OpCode::Call, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
             }
 
     };
@@ -465,7 +475,7 @@ TEST_CASE("compile function", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Constant, {1}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
-            }
+            },
     };
 
     for (auto &testCase: cases) {

@@ -7,6 +7,7 @@
 #include "VM.h"
 #include "magic_enum.hpp"
 #include "fmt/format.h"
+#include "Builtin.h"
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -271,8 +272,21 @@ namespace GC {
                     auto numArgs = readUint8(ip + 1);
                     currentFrame()->ip += 1;
 
-                    auto compiledFunctionObject = static_cast<GC::CompiledFunctionObject *>(stack[sp - 1 -
-                                                                                                  numArgs].get());
+                    auto callee = stack[sp - 1 - numArgs].get();
+                    if (callee->getType() == Common::ObjectType::BUILTIN) {
+                        auto name = static_cast<Common::BuiltinFunctionObject *>(callee)->name;
+                        BuiltinArguments args{};
+                        args.assign(stack.begin() + sp - numArgs, stack.begin() + sp);
+                        auto result = evalBuiltin(name, args);
+                        if (result != nullptr) {
+                            stackPush(std::move(result));
+                        } else {
+                            stackPush(make_shared<Common::NullObject>());
+                        }
+                        break;
+                    }
+
+                    auto compiledFunctionObject = static_cast<GC::CompiledFunctionObject *>(callee);
                     if (numArgs != compiledFunctionObject->numParameters) {
                         throw "wrong number of arguments";
                     }
@@ -280,6 +294,7 @@ namespace GC {
 
                     frameManager.framePush(Frame{*compiledFunctionObject, basePointer});
                     sp = basePointer + compiledFunctionObject->numLocals;
+
                     break;
                 }
                 case OpCode::ReturnValue: {
@@ -314,6 +329,16 @@ namespace GC {
                     } else {
                         stack[index] = stackPop();
                     }
+                    break;
+                }
+                case OpCode::GetBuiltin: {
+                    auto localIndex = readUint8(ip + 1);
+                    currentFrame()->ip += 1;
+
+                    auto index = currentFrame()->basePointer + int(localIndex);
+
+                    auto name = builtinIndexMap[index];
+                    stackPush(make_shared<BuiltinFunctionObject>(name));
                     break;
                 }
                 default:

@@ -14,7 +14,8 @@ namespace GC {
     using namespace std;
     enum class SymbolScope {
         Global,
-        Local
+        Local,
+        Builtin
     };
 
     struct Symbol {
@@ -51,7 +52,9 @@ namespace GC {
 
         Symbol define(const string &name);
 
-        optional<Symbol> resolve(const string &name);
+        Symbol defineBuiltin(int index, string name);
+
+        std::optional<Symbol> resolve(const string &name);
 
     private:
         std::vector<SymbolTable> symbolTables{};

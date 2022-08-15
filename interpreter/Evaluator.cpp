@@ -29,14 +29,6 @@ namespace GI {
         }
     }
 
-    std::unique_ptr<BooleanObject> makeBoolObject(bool value) {
-        return std::make_unique<BooleanObject>(value);
-    }
-
-    std::unique_ptr<ErrorObject> makeErrorObject(const std::string &message) {
-        return std::make_unique<ErrorObject>(message);
-    }
-
     std::shared_ptr<GIObject>
     evalBlockStatement(BlockStatement *block, const std::shared_ptr<Environment> &environment) {
         std::shared_ptr<GIObject> result;
@@ -210,26 +202,6 @@ namespace GI {
         return value;
     }
 
-    std::unique_ptr<GIObject> evalBuiltinLen(std::vector<std::shared_ptr<GIObject>> arguments) {
-        if (arguments.size() != 1) {
-            return makeErrorObject("len() arguments size not match: " + std::to_string(arguments.size()));
-        }
-        auto arg = arguments[0].get();
-        switch (arg->getType()) {
-            case ObjectType::STRING: {
-                auto stringObject = static_cast<StringObject *>(arg);
-                return std::make_unique<IntegerObject>(stringObject->value.size());
-            }
-            case ObjectType::ARRAY: {
-                auto arrayObject = static_cast<ArrayObject *>(arg);
-                return std::make_unique<IntegerObject>(arrayObject->elements.size());
-            }
-            default:
-                return makeErrorObject(
-                        fmt::format("len() argument type is not support: {}", magic_enum::enum_name(arg->getType())));
-        }
-    }
-
     std::vector<std::shared_ptr<GIObject>>
     evalFunctionArguments(CallExpression *node, const std::shared_ptr<Environment> &environment) {
         std::vector<std::shared_ptr<GIObject>> args{};
@@ -277,11 +249,12 @@ namespace GI {
             auto identifier = static_cast<Identifier *>(node->name.get());
             auto fun = environment->getValue(identifier->value);
             if (fun == nullptr) {
-                if (identifier->value == "len") {
-                    auto args = evalFunctionArguments(node, environment);
-                    return evalBuiltinLen(std::move(args));
+                auto args = evalFunctionArguments(node, environment);
+                auto result = evalBuiltin(identifier->value, args);
+                if (result == nullptr) {
+                    return makeErrorObject("identifier not found: " + identifier->value);
                 }
-                return makeErrorObject("identifier not found: " + identifier->value);
+                return result;
             }
             if (fun->getType() != ObjectType::FUNCTION) {
                 return makeErrorObject(fmt::format("{} is not a function", magic_enum::enum_name(fun->getType())));

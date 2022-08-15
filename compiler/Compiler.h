@@ -40,6 +40,7 @@ namespace GC {
                             .lastInstruction =  EmittedInstruction{},
                             .previousInstruction =  EmittedInstruction{}
                     });
+            symbolTableManager.defineBuiltin(0, "len");
         }
 
         void compile(Common::Node *node);
