@@ -352,8 +352,7 @@ TEST_CASE("test compile", "[compiler]") {
 TEST_CASE("compile function", "[compiler]") {
     struct TestCase {
         string input;
-        vector<int> expectedConstants;
-        vector<GC::Instruction> expectedFnInstructions;
+        vector<variant<int, vector<GC::Instruction>>> expectedConstants;
         vector<GC::Instruction> expectedInstructions;
     };
 
@@ -362,33 +361,38 @@ TEST_CASE("compile function", "[compiler]") {
     vector<TestCase> cases = {
             {
                     "fn() {}",
-                    {},
                     {
-                            code.makeInstruction(GC::OpCode::Return)
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::Return)
+                            },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
-            {       "fn() { 5 + 10 }",
-                    {5,  10},
-                    {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
-                            code.makeInstruction(GC::OpCode::Constant, {1}),
-                            code.makeInstruction(GC::OpCode::Add),
-                            code.makeInstruction(GC::OpCode::ReturnValue),
+            {
+                    "fn() { 5 + 10 }",
+                    {       5, 10,
+                                   vector<GC::Instruction>{
+                                           code.makeInstruction(GC::OpCode::Constant, {0}),
+                                           code.makeInstruction(GC::OpCode::Constant, {1}),
+                                           code.makeInstruction(GC::OpCode::Add),
+                                           code.makeInstruction(GC::OpCode::ReturnValue),
+                                   }
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {2}),
                             code.makeInstruction(GC::OpCode::Pop)
-                    }},
+                    }
+            },
             {
                     R"(let noArg = fn() { 24 };noArg();)",
-                    {24},
-                    {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
-                            code.makeInstruction(GC::OpCode::ReturnValue),
+                    {       24,
+                               vector<GC::Instruction>{
+                                       code.makeInstruction(GC::OpCode::Constant, {0}),
+                                       code.makeInstruction(GC::OpCode::ReturnValue),
+                               },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {1}),
@@ -400,11 +404,12 @@ TEST_CASE("compile function", "[compiler]") {
             },
             {
                     R"(let oneArg = fn(a) { a };oneArg(12);)",
-                    {12},
                     {
-                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
-                            code.makeInstruction(GC::OpCode::ReturnValue)
-                    },
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::ReturnValue)
+                            },
+                               12},
                     {
                             code.makeInstruction(GC::OpCode::Constant, {0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
@@ -416,15 +421,16 @@ TEST_CASE("compile function", "[compiler]") {
             },
             {
                     R"(let manyArg = fn(a, b, c) { a; b; c }; manyArg(10, 11, 12);)",
-                    {10, 11, 12},
                     {
-                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
-                            code.makeInstruction(GC::OpCode::Pop),
-                            code.makeInstruction(GC::OpCode::GetLocal, {1}),
-                            code.makeInstruction(GC::OpCode::Pop),
-                            code.makeInstruction(GC::OpCode::GetLocal, {2}),
-                            code.makeInstruction(GC::OpCode::ReturnValue),
-                    },
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::Pop),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {1}),
+                                    code.makeInstruction(GC::OpCode::Pop),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {2}),
+                                    code.makeInstruction(GC::OpCode::ReturnValue),
+                            },
+                               10, 11, 12},
                     {
                             code.makeInstruction(GC::OpCode::Constant, {0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
@@ -438,10 +444,11 @@ TEST_CASE("compile function", "[compiler]") {
             },
             {
                     R"(let num = 55;fn() { num })",
-                    {55},
-                    {
-                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
-                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    {       55,
+                               vector<GC::Instruction>{
+                                       code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                                       code.makeInstruction(GC::OpCode::ReturnValue)
+                               },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {0}),
@@ -452,12 +459,13 @@ TEST_CASE("compile function", "[compiler]") {
             },
             {
                     R"(fn() {let num = 55;num})",
-                    {55},
-                    {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
-                            code.makeInstruction(GC::OpCode::SetLocal, {0}),
-                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
-                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    {       55,
+                               vector<GC::Instruction>{
+                                       code.makeInstruction(GC::OpCode::Constant, {0}),
+                                       code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                       code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                       code.makeInstruction(GC::OpCode::ReturnValue)
+                               },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {1}),
@@ -466,10 +474,11 @@ TEST_CASE("compile function", "[compiler]") {
             },
             {
                     "fn() { return 1; }",
-                    {1},
-                    {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
-                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    {       1,
+                               vector<GC::Instruction>{
+                                       code.makeInstruction(GC::OpCode::Constant, {0}),
+                                       code.makeInstruction(GC::OpCode::ReturnValue)
+                               },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {1}),
@@ -491,17 +500,15 @@ TEST_CASE("compile function", "[compiler]") {
             ins.insert(ins.end(), instruction.begin(), instruction.end());
         }
         REQUIRE(ins == compiler.getByteCode().instructions);
-        int constantIndex = 0;
         for (int i = 0; i < compiler.constants.size(); i++) {
             if (compiler.constants[i]->getType() == Common::ObjectType::INTEGER) {
                 auto value = static_cast<Common::IntegerObject *>(compiler.constants[i].get())->value;
-                REQUIRE(value == testCase.expectedConstants[constantIndex]);
-                constantIndex++;
+                REQUIRE(value == std::get<int>(testCase.expectedConstants[i]));
             } else if (compiler.constants[i]->getType() == Common::ObjectType::COMPILED_FUNCTION) {
                 auto functionObject = static_cast<GC::CompiledFunctionObject *>(compiler.constants[i].get());
-
                 GC::Instruction fnIns;
-                for (auto &instruction: testCase.expectedFnInstructions) {
+                auto instructions = std::get<vector<GC::Instruction>>(testCase.expectedConstants[i]);
+                for (auto &instruction: instructions) {
                     fnIns.insert(fnIns.end(), instruction.begin(), instruction.end());
                 }
                 REQUIRE(functionObject->instructions == fnIns);
