@@ -7,6 +7,7 @@
 
 #include "Ast.h"
 #include "Environment.h"
+#include "Builtin.h"
 
 namespace GI {
     using namespace Common;

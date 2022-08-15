@@ -51,6 +51,7 @@ namespace GC {
         Return,
         GetLocal,
         SetLocal,
+        GetBuiltin,
     };
 
 
@@ -88,6 +89,7 @@ namespace GC {
             OP_DEF(Return);
             OP_DEF_SIZE(GetLocal, 1);
             OP_DEF_SIZE(SetLocal, 1);
+            OP_DEF_SIZE(GetBuiltin, 1);
         }
 
         int readUint16(Instruction instruction) {

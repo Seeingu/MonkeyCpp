@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iterator>
 #include "Ast.h"
+#include "fmt/core.h"
 #include "Environment.h"
 
 
@@ -147,31 +148,16 @@ namespace Common {
 
     struct BuiltinFunctionObject : GIObject {
         BuiltinFunctionObject(
-                std::vector<std::unique_ptr<Identifier>> parameters,
-                std::unique_ptr<BlockStatement> body,
-                std::shared_ptr<Environment> environment
-        ) : parameters{std::move(parameters)}, body{std::move(body)}, environment{std::move(environment)} {}
+                string name
+        ) : name{name} {}
 
         ObjectType getType() override { return ObjectType::BUILTIN; }
 
         std::string inspect() override {
-            std::stringstream ss;
-
-            std::vector<std::string> params;
-            for (auto &param: parameters) {
-                params.push_back(param->toString());
-            }
-            std::stringstream paramsStream;
-            std::copy(params.begin(), params.end() - 1, std::ostream_iterator<std::string>(paramsStream, ","));
-            ss << "(" << paramsStream.str() << ")";
-            ss << " {" << std::endl;
-            ss << body->toString() << std::endl << "}";
-            return ss.str();
+            return fmt::format("<builtin: {}>", name);
         }
 
-        std::vector<std::unique_ptr<Identifier>> parameters;
-        std::unique_ptr<BlockStatement> body;
-        std::shared_ptr<Environment> environment;
+        string name;
     };
 
     struct ArrayObject : GIObject {
@@ -223,6 +209,10 @@ namespace Common {
 
         std::map<HashKey, HashPair> pairs;
     };
+
+    std::unique_ptr<BooleanObject> makeBoolObject(bool value);
+
+    std::unique_ptr<ErrorObject> makeErrorObject(const std::string &message);
 
 }
 

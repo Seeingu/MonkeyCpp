@@ -53,6 +53,8 @@ namespace GC {
 
         FrameManager frameManager;
 
+        std::map<int, string> builtinIndexMap{{0, "len"}};
+
         std::vector<shared_ptr<Common::GIObject>> globals;
     };
 }
