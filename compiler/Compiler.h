@@ -14,19 +14,45 @@
 namespace GC {
     using namespace std;
 
+
     struct EmittedInstruction {
         OpCode code;
         int position;
     };
+    struct CompilationScope {
+        Instruction instructions;
+        EmittedInstruction lastInstruction;
+        EmittedInstruction previousInstruction;
+    };
+
+    using Constants = vector<shared_ptr<Common::GIObject>>;
+    struct ByteCode {
+        Instruction instructions;
+        Constants constants;
+    };
 
     class Compiler {
     public:
-        Compiler() {}
+        Compiler() {
+            scopes.push_back(
+                    {
+                            .instructions =  {},
+                            .lastInstruction =  EmittedInstruction{},
+                            .previousInstruction =  EmittedInstruction{}
+                    });
+        }
 
         void compile(Common::Node *node);
 
-        Instruction instructions;
-        vector<shared_ptr<Common::GIObject>> constants;
+        Constants constants;
+
+        ByteCode getByteCode() {
+            return {
+                    currentInstructions(),
+                    constants
+            };
+        }
+
 
     private:
         int emit(OpCode opCode, vector<int> operands = {});
@@ -39,11 +65,36 @@ namespace GC {
 
         int addConstant(shared_ptr<Common::GIObject> object);
 
-        EmittedInstruction lastInstruction{};
-        EmittedInstruction previousInstruction{};
+        void replaceInstruction(int position, Instruction instruction);
 
-        SymbolTable symbolTable{};
+        void replaceLastPopWithReturn();
+
+        void enterScope();
+
+        Instruction leaveScope();
+
+        Instruction currentInstructions() {
+            return scopes[scopeIndex].instructions;
+        }
+
+        Instruction *instructions() {
+            return &scopes[scopeIndex].instructions;
+        }
+
+        EmittedInstruction lastInstruction() {
+            return scopes[scopeIndex].lastInstruction;
+        }
+
+        EmittedInstruction previousInstruction() {
+            return scopes[scopeIndex].previousInstruction;
+        }
+
+        SymbolTableManager symbolTableManager{};
+
         Code code{};
+
+        int scopeIndex{0};
+        vector<CompilationScope> scopes;
     };
 }
 

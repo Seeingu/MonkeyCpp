@@ -7,6 +7,7 @@
 #include "Compiler.h"
 #include "fmt/core.h"
 #include "magic_enum.hpp"
+#include "CompilerObject.h"
 
 #include <algorithm>
 #include <utility>
@@ -40,7 +41,6 @@ namespace GC {
 
                 compile(expr->leftExpression.get());
                 compile(expr->rightExpression.get());
-
 
                 std::map<string, OpCode> infixActions{
                         {"+",  OpCode::Add},
@@ -89,17 +89,27 @@ namespace GC {
 
                 compile(ifExpr->consequence.get());
 
+                if (lastInstruction().code == OpCode::Pop) {
+                    // remove last pop code
+                    scopes[scopeIndex].instructions.pop_back();
+                }
+
                 auto jumpPos = emit(OpCode::Jump, {DUMB_INSTRUCTION_ADDRESS});
-                int afterConsequencePos = instructions.size();
+                int afterConsequencePos = currentInstructions().size();
                 changeOperand(jumpNotTruthyPos, {afterConsequencePos});
 
                 if (ifExpr->alternative == nullptr) {
                     emit(OpCode::_Null);
                 } else {
                     compile(ifExpr->alternative.get());
+
+                    if (lastInstruction().code == OpCode::Pop) {
+                        // remove last pop code
+                        scopes[scopeIndex].instructions.pop_back();
+                    }
                 }
 
-                int afterAlternativePos = instructions.size();
+                int afterAlternativePos = currentInstructions().size();
                 changeOperand(jumpPos, {afterAlternativePos});
                 break;
             }
@@ -108,7 +118,6 @@ namespace GC {
                 for (auto &stmt: blockStmt->statements) {
                     compile(stmt.get());
                 }
-                instructions.pop_back();
 
                 break;
             }
@@ -116,15 +125,23 @@ namespace GC {
                 auto letStmt = static_cast<Common::LetStatement *>(node);
                 compile(letStmt->value.get());
 
-                auto symbol = symbolTable.define(letStmt->name->value);
-                emit(OpCode::SetGlobal, {symbol.index});
+                auto symbol = symbolTableManager.define(letStmt->name->value);
+                if (symbol.scope == SymbolScope::Global) {
+                    emit(OpCode::SetGlobal, {symbol.index});
+                } else {
+                    emit(OpCode::SetLocal, {symbol.index});
+                }
                 break;
             }
             case Common::NodeType::Identifier: {
                 auto id = static_cast<Common::Identifier *>(node);
-                auto symbol = symbolTable.resolve(id->value);
+                auto symbol = symbolTableManager.resolve(id->value);
                 if (symbol.has_value()) {
-                    emit(OpCode::GetGlobal, {symbol.value().index});
+                    if (symbol->scope == SymbolScope::Global) {
+                        emit(OpCode::GetGlobal, {symbol.value().index});
+                    } else {
+                        emit(OpCode::GetLocal, {symbol.value().index});
+                    }
                 } else {
                     throw fmt::format("undefined variable {}", id->value);
                 }
@@ -173,6 +190,51 @@ namespace GC {
                 emit(OpCode::Index);
                 break;
             }
+            case Common::NodeType::FunctionExpression: {
+                auto functionExpr = static_cast<Common::FunctionExpression *>(node);
+
+                enterScope();
+
+                for (auto &p: functionExpr->parameters) {
+                    symbolTableManager.define(p->value);
+                }
+
+                compile(functionExpr->body.get());
+                if (lastInstruction().code == OpCode::Pop) {
+                    replaceLastPopWithReturn();
+                }
+                if (lastInstruction().code != OpCode::ReturnValue) {
+                    emit(OpCode::Return);
+                }
+
+                auto numLocals = symbolTableManager.symbolTable->numDefinitions;;
+                auto localInstructions = leaveScope();
+                emit(OpCode::Constant, {
+                        addConstant(make_shared<GC::CompiledFunctionObject>(
+                                localInstructions,
+                                functionExpr->parameters.size(),
+                                numLocals
+                        ))
+                });
+                break;
+            }
+            case Common::NodeType::CallExpression: {
+                auto callExpr = static_cast<Common::CallExpression *>(node);
+                compile(callExpr->name.get());
+
+                for (auto &arg: callExpr->arguments) {
+                    compile(arg.get());
+                }
+                emit(OpCode::Call, {int(callExpr->arguments.size())});
+                break;
+            }
+            case Common::NodeType::ReturnStatement: {
+                auto returnStmt = static_cast<Common::ReturnStatement *>(node);
+
+                compile(returnStmt->returnValue.get());
+                emit(OpCode::ReturnValue);
+                break;
+            }
             default:
                 throw fmt::format("unsupported node type: {}", magic_enum::enum_name(node->getType()));
         }
@@ -183,15 +245,15 @@ namespace GC {
         auto ins = code.makeInstruction(opCode, std::move(operands));
         auto pos = addInstruction(ins);
 
-        // setLastInstruction(opCode, pos);
+        setLastInstruction(opCode, pos);
 
         return pos;
     }
 
 
     void Compiler::setLastInstruction(OpCode code, int position) {
-        previousInstruction = lastInstruction;
-        lastInstruction = EmittedInstruction{code, position};
+        scopes[scopeIndex].previousInstruction = scopes[scopeIndex].lastInstruction;
+        scopes[scopeIndex].lastInstruction = EmittedInstruction{code, position};
     }
 
     int Compiler::addConstant(shared_ptr<Common::GIObject> object) {
@@ -200,19 +262,57 @@ namespace GC {
     }
 
     int Compiler::addInstruction(Instruction instruction) {
-        auto pos = instructions.size();
-        instructions.insert(instructions.end(), instruction.begin(), instruction.end());
+        auto ins = instructions();
+        auto pos = ins->size();
+
+        ins->insert(ins->end(), instruction.begin(),
+                    instruction.end());
         return int(pos);
     }
 
     void Compiler::changeOperand(int position, vector<int> operand) {
-        auto opCode = OpCode(instructions[position]);
+        auto currentIns = currentInstructions();
+        auto opCode = OpCode(currentIns[position]);
         auto ins = code.makeInstruction(opCode, operand);
 
         for (int i = 0; i < ins.size(); i++) {
-            instructions[position + i] = ins[i];
+            (*instructions())[position + i] = ins[i];
         }
+    }
 
+    void Compiler::replaceInstruction(int position, Instruction instruction) {
+        auto ins = instructions();
+        for (int i = 0; i < instruction.size(); i++) {
+            (*ins)[position + i] = instruction[i];
+        }
+    }
+
+    void Compiler::enterScope() {
+        scopes.push_back(
+                {
+                        .instructions =  {},
+                        .lastInstruction =  EmittedInstruction{},
+                        .previousInstruction =  EmittedInstruction{}
+                });
+        scopeIndex++;
+        symbolTableManager.enterScope();
+    }
+
+    Instruction Compiler::leaveScope() {
+        auto instructions = scopes[scopeIndex].instructions;
+        scopes.pop_back();
+        scopeIndex--;
+
+        symbolTableManager.leaveScope();
+        return instructions;
+    }
+
+
+    void Compiler::replaceLastPopWithReturn() {
+        auto lastPosition = lastInstruction().position;
+        replaceInstruction(lastPosition, code.makeInstruction(OpCode::ReturnValue));
+
+        scopes[scopeIndex].lastInstruction.code = OpCode::ReturnValue;
     }
 }
 

@@ -8,6 +8,7 @@
 #include "magic_enum.hpp"
 #include "fmt/format.h"
 #include <cstddef>
+#include <iostream>
 #include <string>
 
 
@@ -33,13 +34,15 @@ namespace GC {
     }
 
     void VM::run() {
-        for (int i = 0; i < instructions.size(); i++) {
-            auto instruction = instructions[i];
+        while (currentFrame()->ip < int(getInstructions().size()) - 1) {
+            currentFrame()->ip++;
+            auto ip = currentFrame()->ip;
+            auto instruction = getInstructions()[ip];
             auto opCode = OpCode(instruction);
             switch (opCode) {
                 case OpCode::Constant: {
-                    int constIndex = readUint16(i + 1);
-                    i += 2;
+                    int constIndex = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     stackPush(constants[constIndex]);
                     break;
@@ -72,7 +75,6 @@ namespace GC {
                             default:
                                 // unreachable
                                 break;
-
                         }
                         stackPush(make_shared<Common::IntegerObject>(result));
                     } else if (left->getType() == Common::ObjectType::STRING &&
@@ -166,17 +168,17 @@ namespace GC {
                     stackPop();
                     break;
                 case OpCode::Jump: {
-                    auto insIndex = readUint16(i + 1);
-                    i = insIndex - 1;
+                    auto insIndex = readUint16(ip + 1);
+                    currentFrame()->ip = insIndex - 1;
                     break;
                 }
                 case OpCode::JumpNotTruthy: {
-                    auto insIndex = readUint16(i + 1);
-                    i += 2;
+                    auto insIndex = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     auto condition = stackPop();
                     if (!isTruthy(condition)) {
-                        i = insIndex - 1;
+                        currentFrame()->ip = insIndex - 1;
                     }
                     break;
                 }
@@ -185,8 +187,8 @@ namespace GC {
                     break;
                 }
                 case OpCode::SetGlobal: {
-                    auto globalIndex = readUint16(i + 1);
-                    i += 2;
+                    auto globalIndex = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     if (globals.size() == globalIndex) {
                         globals.push_back(stackPop());
@@ -197,15 +199,15 @@ namespace GC {
                     break;
                 }
                 case OpCode::GetGlobal: {
-                    auto globalIndex = readUint16(i + 1);
-                    i += 2;
+                    auto globalIndex = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     stackPush(globals[globalIndex]);
                     break;
                 }
                 case OpCode::Array: {
-                    auto numElements = readUint16(i + 1);
-                    i += 2;
+                    auto numElements = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     vector<shared_ptr<Common::GIObject>> elements;
                     for (auto index = 0; index < numElements; index++) {
@@ -216,8 +218,8 @@ namespace GC {
                     break;
                 }
                 case OpCode::Hash: {
-                    auto numElements = readUint16(i + 1);
-                    i += 2;
+                    auto numElements = readUint16(ip + 1);
+                    currentFrame()->ip += 2;
 
                     std::map<Common::HashKey, Common::HashPair> pairs{};
                     for (auto index = 0; index < numElements; index += 2) {
@@ -265,6 +267,55 @@ namespace GC {
                     }
                     break;
                 }
+                case OpCode::Call: {
+                    auto numArgs = readUint8(ip + 1);
+                    currentFrame()->ip += 1;
+
+                    auto compiledFunctionObject = static_cast<GC::CompiledFunctionObject *>(stack[sp - 1 -
+                                                                                                  numArgs].get());
+                    if (numArgs != compiledFunctionObject->numParameters) {
+                        throw "wrong number of arguments";
+                    }
+                    auto basePointer = sp - numArgs;
+
+                    frameManager.framePush(Frame{*compiledFunctionObject, basePointer});
+                    sp = basePointer + compiledFunctionObject->numLocals;
+                    break;
+                }
+                case OpCode::ReturnValue: {
+                    auto value = stackPop();
+                    auto frame = frameManager.framePop();
+                    sp = frame.basePointer - 1;
+
+                    stackPush(value);
+                    break;
+                }
+                case OpCode::Return: {
+                    auto frame = frameManager.framePop();
+                    sp = frame.basePointer - 1;
+                    stackPush(make_shared<Common::NullObject>());
+                    break;
+                }
+                case OpCode::GetLocal: {
+                    auto localIndex = readUint8(ip + 1);
+                    currentFrame()->ip += 1;
+
+                    auto index = currentFrame()->basePointer + int(localIndex);
+                    stackPush(stack[index]);
+                    break;
+                }
+                case OpCode::SetLocal: {
+                    auto localIndex = readUint8(ip + 1);
+                    currentFrame()->ip += 1;
+
+                    auto index = currentFrame()->basePointer + int(localIndex);
+                    if (index >= stack.size()) {
+                        stack.push_back(stackPop());
+                    } else {
+                        stack[index] = stackPop();
+                    }
+                    break;
+                }
                 default:
                     throw "unsupported instruction on vm: " + to_string(to_integer<int>(instruction));
             }
@@ -277,6 +328,9 @@ namespace GC {
         if (sp >= STACK_SIZE) {
             throw "Stack overflow";
         }
+        if (sp < 0) {
+            throw "invalid negative stack sp";
+        }
         // TODO: use intuitive actions
         if (stack.size() == sp) {
             stack.push_back(object);
@@ -288,16 +342,22 @@ namespace GC {
 
 
     shared_ptr<Common::GIObject> VM::stackPop() {
-        auto object = stack[sp - 1];
         sp--;
-        return object;
+        return stack[sp];
     }
-
 
     int VM::readUint16(int index) {
         Instruction ins;
+        auto instructions = getInstructions();
         ins.assign(instructions.begin() + index, instructions.end());
         return code.readUint16(ins);
+    }
+
+    int VM::readUint8(int index) {
+        Instruction ins;
+        auto instructions = getInstructions();
+        ins.assign(instructions.begin() + index, instructions.end());
+        return code.readUint8(ins);
     }
 }
 

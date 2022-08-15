@@ -45,7 +45,12 @@ namespace GC {
         SetGlobal,
         Array,
         Hash,
-        Index
+        Index,
+        Call,
+        ReturnValue,
+        Return,
+        GetLocal,
+        SetLocal,
     };
 
 
@@ -78,11 +83,21 @@ namespace GC {
             OP_DEF_SIZE(Array, 2);
             OP_DEF_SIZE(Hash, 2);
             OP_DEF(Index);
+            OP_DEF_SIZE(Call, 1);
+            OP_DEF(ReturnValue);
+            OP_DEF(Return);
+            OP_DEF_SIZE(GetLocal, 1);
+            OP_DEF_SIZE(SetLocal, 1);
         }
 
         int readUint16(Instruction instruction) {
             int op = to_integer<int>(instruction[0]) << 8;
             op = op | to_integer<int>(instruction[1]);
+            return op;
+        }
+
+        int readUint8(Instruction instruction) {
+            int op = to_integer<int>(instruction[0]);
             return op;
         }
 

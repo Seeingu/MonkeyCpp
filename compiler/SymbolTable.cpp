@@ -5,17 +5,32 @@
 #include "SymbolTable.h"
 
 namespace GC {
+    void SymbolTableManager::enterScope() {
+        symbolTables.emplace_back();
+        symbolTable = &symbolTables.back();
+    }
 
-    Symbol SymbolTable::define(const string &name) {
-        auto s = Symbol{name, GLOBAL_SCOPE, numDefinitions};
-        store[name] = s;
-        numDefinitions++;
+    void SymbolTableManager::leaveScope() {
+        symbolTables.pop_back();
+        symbolTable = &symbolTables.back();
+    }
+
+    Symbol SymbolTableManager::define(const string &name) {
+        auto st = &symbolTables.back();
+        auto s = Symbol{name, SymbolScope::Global, st->numDefinitions};
+        if (!st->isGlobal) {
+            s.scope = SymbolScope::Local;
+        }
+        st->store[name] = s;
+        st->numDefinitions++;
         return s;
     }
 
-    optional<Symbol> SymbolTable::resolve(const string &name) {
-        if (store.contains(name)) {
-            return store[name];
+    optional<Symbol> SymbolTableManager::resolve(const string &name) {
+        for (auto s = symbolTables.rbegin(); s != symbolTables.rend(); s++) {
+            if (s->store.contains(name)) {
+                return s->store[name];
+            }
         }
         return nullopt;
     }

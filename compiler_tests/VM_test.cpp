@@ -4,6 +4,7 @@
 // Created by seeu on 2022/8/9.
 //
 
+#include <utility>
 #include <vector>
 #include <memory>
 #include <algorithm>
@@ -11,12 +12,27 @@
 #include <iterator>
 #include <variant>
 #include "catch2/catch_all.hpp"
+#include "magic_enum.hpp"
+#include "fmt/core.h"
 #include "Lexer.h"
 #include "Parser.h"
+
 #include "Compiler.h"
 #include "VM.h"
 
 using namespace std;
+
+GC::VM runVM(string input) {
+    Common::Lexer lexer{std::move(input)};
+    Common::Parser parser{&lexer};
+    auto program = parser.parseProgram();
+
+    GC::Compiler compiler;
+    compiler.compile(program.get());
+    GC::VM vm{compiler.getByteCode()};
+    vm.run();
+    return vm;
+}
 
 TEST_CASE("vm test", "[vm]") {
     struct TestCase {
@@ -96,19 +112,14 @@ TEST_CASE("vm test", "[vm]") {
     };
 
     for (auto &testCase: cases) {
-        Common::Lexer lexer{testCase.input};
-        Common::Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        GC::Compiler compiler;
-        compiler.compile(program.get());
-        GC::VM vm{std::move(compiler.constants), compiler.instructions};
-        vm.run();
+        auto vm = runVM(testCase.input);
 
         switch (vm.lastStackElem()->getType()) {
             case Common::ObjectType::INTEGER: {
                 auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
-                REQUIRE(integerObject->value == std::get<int>(testCase.expected));
+                auto value = integerObject->value;
+                auto expected = std::get<int>(testCase.expected);
+                REQUIRE(value == expected);
                 break;
             }
             case Common::ObjectType::BOOLEAN: {
@@ -127,6 +138,7 @@ TEST_CASE("vm test", "[vm]") {
                     auto expectedValue = std::get<string>(testCase.expected);
                     REQUIRE(stringValue == expectedValue);
                 } catch (std::bad_variant_access const &ex) {
+                    // FIXME: get<string> would failed in CI
                     std::cout << ex.what() << ": " << testCase.input << endl;
                 }
                 break;
@@ -153,14 +165,7 @@ TEST_CASE("test vm array", "[vm]") {
     };
 
     for (auto &testCase: cases) {
-        Common::Lexer lexer{testCase.input};
-        Common::Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        GC::Compiler compiler;
-        compiler.compile(program.get());
-        GC::VM vm{std::move(compiler.constants), compiler.instructions};
-        vm.run();
+        auto vm = runVM(testCase.input);
 
         auto arrayObject = static_cast<Common::ArrayObject *>(vm.lastStackElem().get());
         vector<int> result{};
@@ -188,14 +193,7 @@ TEST_CASE("test vm hash", "[vm]") {
     };
 
     for (auto &testCase: cases) {
-        Common::Lexer lexer{testCase.input};
-        Common::Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        GC::Compiler compiler;
-        compiler.compile(program.get());
-        GC::VM vm{std::move(compiler.constants), compiler.instructions};
-        vm.run();
+        auto vm = runVM(testCase.input);
 
         auto hashObject = static_cast<Common::HashObject *>(vm.lastStackElem().get());
         std::map<int, int> result{};
@@ -229,20 +227,68 @@ TEST_CASE("test vm index", "[vm]") {
     };
 
     for (auto &testCase: cases) {
-        Common::Lexer lexer{testCase.input};
-        Common::Parser parser{&lexer};
-        auto program = parser.parseProgram();
-
-        GC::Compiler compiler;
-        compiler.compile(program.get());
-        GC::VM vm{std::move(compiler.constants), compiler.instructions};
-        vm.run();
+        auto vm = runVM(testCase.input);
 
         if (vm.lastStackElem()->getType() == Common::ObjectType::INTEGER) {
             auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
             REQUIRE(integerObject->value == std::get<int>(testCase.expected));
         } else {
             REQUIRE(std::get<nullptr_t>(testCase.expected) == nullptr);
+        }
+    }
+}
+
+TEST_CASE("test vm function", "[vm]") {
+    struct TestCase {
+        string input;
+        int expected;
+    };
+
+    vector<TestCase> cases = {
+            {
+                    R"(let fivePlusTen = fn() { 5 + 10; };
+                        fivePlusTen();)",
+                    15
+            },
+            {
+                    R"(let one = fn() { 1; };
+		            let two = fn() { 2; };
+		            one() + two())",
+                    3
+            },
+            {
+                    R"(let a = fn() { 1 };
+		            let b = fn() { a() + 1 };
+		            let c = fn() { b() + 1 };
+		            c();)",
+                    3
+            },
+            {
+                    R"(let earlyExit = fn() { return 99; 100; };
+                    earlyExit();)",
+                    99
+            },
+            {
+                    R"(let noReturn = fn() { };noReturn();)",
+                    0
+            },
+            {
+                    R"(let one = fn() { let one = 1; one };one();)",
+                    1
+            },
+            {
+                    R"(let identity = fn(a) { a; };identity(4);)",
+                    4
+            }
+    };
+
+    for (auto &testCase: cases) {
+        auto vm = runVM(testCase.input);
+        if (vm.lastStackElem()->getType() == Common::ObjectType::INTEGER) {
+            auto integerObject = static_cast<Common::IntegerObject *>(vm.lastStackElem().get());
+            REQUIRE(integerObject->value == testCase.expected);
+        } else {
+            REQUIRE(testCase.expected == 0);
         }
     }
 }

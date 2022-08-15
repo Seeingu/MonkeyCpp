@@ -7,12 +7,15 @@
 
 #include <map>
 #include <string>
-
-#define GLOBAL_SCOPE "GLOBAL_SCOPE"
+#include <utility>
+#include <vector>
 
 namespace GC {
     using namespace std;
-    using SymbolScope = string;
+    enum class SymbolScope {
+        Global,
+        Local
+    };
 
     struct Symbol {
         string name;
@@ -22,13 +25,36 @@ namespace GC {
 
     class SymbolTable {
     public:
+        explicit SymbolTable(bool isGlobal) : isGlobal{isGlobal} {
+        };
+
+        SymbolTable() {}
+
+        bool isGlobal{false};
+
+        std::map<string, Symbol> store{};
+        int numDefinitions{0};
+    };
+
+    class SymbolTableManager {
+    public:
+        SymbolTableManager() {
+            // init default global table
+            symbolTables.emplace_back(true);
+        }
+
+        void enterScope();
+
+        void leaveScope();
+
+        SymbolTable *symbolTable;
+
         Symbol define(const string &name);
 
         optional<Symbol> resolve(const string &name);
 
     private:
-        std::map<string, Symbol> store;
-        int numDefinitions;
+        std::vector<SymbolTable> symbolTables{};
     };
 
 }
