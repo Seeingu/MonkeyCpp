@@ -27,7 +27,10 @@ namespace Common {
         RETURN_VALUE,
         FUNCTION,
         ARRAY,
-        HASH
+        HASH,
+
+        // used in compiler
+        COMPILED_FUNCTION,
     };
 
     struct GIObject {
@@ -220,6 +223,7 @@ namespace Common {
 
         std::map<HashKey, HashPair> pairs;
     };
+
 }
 
 #endif //GOINTERPRETER_GIOBJECT_H

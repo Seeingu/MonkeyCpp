@@ -8,6 +8,8 @@
 #include <vector>
 #include "GIObject.h"
 #include "Code.h"
+#include "Compiler.h"
+#include "Frame.h"
 
 #define STACK_SIZE 1024
 
@@ -16,10 +18,7 @@ namespace GC {
 
     class VM {
     public:
-        VM(vector <shared_ptr<Common::GIObject>> constants,
-           Instruction instructions
-        ) : constants{std::move(constants)},
-            instructions{std::move(instructions)} {
+        explicit VM(ByteCode byteCode) : constants{byteCode.constants}, frameManager{byteCode.instructions} {
             stack.reserve(STACK_SIZE);
         }
 
@@ -29,22 +28,32 @@ namespace GC {
 
         shared_ptr<Common::GIObject> lastStackElem();
 
-
     private:
+        Frame *currentFrame() {
+            return frameManager.currentFrame();
+        }
+
+        Instruction getInstructions() {
+            return frameManager.getInstructions();
+        }
+
         void stackPush(shared_ptr<Common::GIObject> object);
 
         shared_ptr<Common::GIObject> stackPop();
 
         int readUint16(int index);
 
-        vector <shared_ptr<Common::GIObject>> constants;
+        int readUint8(int index);
 
-        Instruction instructions;
-        vector <shared_ptr<Common::GIObject>> stack;
+        std::vector<shared_ptr<Common::GIObject>> constants;
+
+        std::vector<shared_ptr<Common::GIObject>> stack;
         int sp{0};
         Code code{};
 
-        vector <shared_ptr<Common::GIObject>> globals;
+        FrameManager frameManager;
+
+        std::vector<shared_ptr<Common::GIObject>> globals;
     };
 }
 

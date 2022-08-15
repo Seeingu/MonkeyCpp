@@ -41,6 +41,10 @@ namespace GC {
                 // little endian
                 instruction.push_back(byte(o >> 8));
                 instruction.push_back(byte(o & 0xff));
+            } else if (width == 1) {
+                instruction.push_back(byte(o));
+            } else {
+                throw "operand width size not matched: " + width;
             }
         }
 

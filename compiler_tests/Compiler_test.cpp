@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cppcoreguidelines-pro-type-static-cast-downcast"
 //
 // Created by seeu on 2022/8/9.
 //
@@ -11,6 +13,7 @@
 #include "Lexer.h"
 #include "Parser.h"
 #include "Compiler.h"
+#include "CompilerObject.h"
 
 using namespace std;
 
@@ -322,7 +325,7 @@ TEST_CASE("test compile", "[compiler]") {
         for (auto &instruction: testCase.expectedInstructions) {
             ins.insert(ins.end(), instruction.begin(), instruction.end());
         }
-        REQUIRE(ins == compiler.instructions);
+        REQUIRE(ins == compiler.getByteCode().instructions);
         for (int i = 0; i < compiler.constants.size(); i++) {
             if (compiler.constants[i]->getType() == Common::ObjectType::INTEGER) {
                 auto value = static_cast<Common::IntegerObject *>(compiler.constants[i].get())->value;
@@ -335,3 +338,167 @@ TEST_CASE("test compile", "[compiler]") {
 
     }
 }
+
+TEST_CASE("compile function", "[compiler]") {
+    struct TestCase {
+        string input;
+        vector<int> expectedConstants;
+        vector<GC::Instruction> expectedFnInstructions;
+        vector<GC::Instruction> expectedInstructions;
+    };
+
+    GC::Code code{};
+
+    vector<TestCase> cases = {
+            {
+                    "fn() {}",
+                    {},
+                    {
+                            code.makeInstruction(GC::OpCode::Return)
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {       "fn() { 5 + 10 }",
+                    {5,  10},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Add),
+                            code.makeInstruction(GC::OpCode::ReturnValue),
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }},
+            {
+                    R"(let noArg = fn() { 24 };noArg();)",
+                    {24},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::ReturnValue),
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Call, {0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let oneArg = fn(a) { a };oneArg(12);)",
+                    {12},
+                    {
+                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Call, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let manyArg = fn(a, b, c) { a; b; c }; manyArg(10, 11, 12);)",
+                    {10, 11, 12},
+                    {
+                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::Pop),
+                            code.makeInstruction(GC::OpCode::GetLocal, {1}),
+                            code.makeInstruction(GC::OpCode::Pop),
+                            code.makeInstruction(GC::OpCode::GetLocal, {2}),
+                            code.makeInstruction(GC::OpCode::ReturnValue),
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Constant, {3}),
+                            code.makeInstruction(GC::OpCode::Call, {3}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let num = 55;fn() { num })",
+                    {55},
+                    {
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(fn() {let num = 55;num})",
+                    {55},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    "fn() { return 1; }",
+                    {1},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            }
+    };
+
+    for (auto &testCase: cases) {
+        Common::Lexer lexer{testCase.input};
+        Common::Parser parser{&lexer};
+        auto program = parser.parseProgram();
+
+        GC::Compiler compiler;
+        compiler.compile(program.get());
+
+        GC::Instruction ins;
+        for (auto &instruction: testCase.expectedInstructions) {
+            ins.insert(ins.end(), instruction.begin(), instruction.end());
+        }
+        REQUIRE(ins == compiler.getByteCode().instructions);
+        int constantIndex = 0;
+        for (int i = 0; i < compiler.constants.size(); i++) {
+            if (compiler.constants[i]->getType() == Common::ObjectType::INTEGER) {
+                auto value = static_cast<Common::IntegerObject *>(compiler.constants[i].get())->value;
+                REQUIRE(value == testCase.expectedConstants[constantIndex]);
+                constantIndex++;
+            } else if (compiler.constants[i]->getType() == Common::ObjectType::COMPILED_FUNCTION) {
+                auto functionObject = static_cast<GC::CompiledFunctionObject *>(compiler.constants[i].get());
+
+                GC::Instruction fnIns;
+                for (auto &instruction: testCase.expectedFnInstructions) {
+                    fnIns.insert(fnIns.end(), instruction.begin(), instruction.end());
+                }
+                REQUIRE(functionObject->instructions == fnIns);
+            }
+        }
+
+    }
+}
+
+#pragma clang diagnostic pop
