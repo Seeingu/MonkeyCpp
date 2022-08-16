@@ -6,7 +6,7 @@
 
 namespace GC {
     void SymbolTableManager::enterScope() {
-        symbolTables.emplace_back();
+        symbolTables.emplace_back(true);
         symbolTable = &symbolTables.back();
     }
 
@@ -18,7 +18,7 @@ namespace GC {
     Symbol SymbolTableManager::define(const string &name) {
         auto st = &symbolTables.back();
         auto s = Symbol{name, SymbolScope::Global, st->numDefinitions};
-        if (!st->isGlobal) {
+        if (st->hasOuter) {
             s.scope = SymbolScope::Local;
         }
         st->store[name] = s;
@@ -34,10 +34,35 @@ namespace GC {
         return s;
     }
 
+    Symbol SymbolTableManager::defineFunctionName(string name) {
+        auto s = Symbol{name, SymbolScope::Function, 0};
+        auto st = &symbolTables.back();
+        st->store[name] = s;
+        return s;
+    }
+
+    Symbol SymbolTableManager::defineFree(Symbol original) {
+        auto st = &symbolTables.back();
+        st->freeSymbols.push_back(original);
+
+        auto s = Symbol{original.name, SymbolScope::Free, int(st->freeSymbols.size()) - 1};
+        st->store[original.name] = s;
+        return s;
+    }
+
     optional<Symbol> SymbolTableManager::resolve(const string &name) {
-        for (auto s = symbolTables.rbegin(); s != symbolTables.rend(); s++) {
+        auto localSymbolTable = symbolTables.back();
+        if (localSymbolTable.store.contains(name)) {
+            return localSymbolTable.store[name];
+        }
+        for (auto s = symbolTables.rbegin() + 1; s != symbolTables.rend(); s++) {
             if (s->store.contains(name)) {
-                return s->store[name];
+                auto symbol = s->store[name];
+
+                if (symbol.scope == SymbolScope::Global || symbol.scope == SymbolScope::Builtin) {
+                    return symbol;
+                }
+                return defineFree(symbol);
             }
         }
         return nullopt;

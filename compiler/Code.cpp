@@ -12,9 +12,6 @@
 
 namespace GC {
     string formatInstruction(Definition *definition, vector<int> operands) {
-        if (definition->operandWidths.size() != operands.size()) {
-            return "Error: operand length not matches: " + definition->name;
-        }
         stringstream ss;
         ss << definition->name;
         for (auto &op: operands) {
@@ -35,8 +32,9 @@ namespace GC {
         auto instruction = Instruction{};
         instruction.push_back(byte{code});
 
-        for (int o: operands) {
-            auto width = definition.operandWidths[0];
+        for (int i = 0; i < operands.size(); i++) {
+            auto o = operands[i];
+            auto width = definition.operandWidths[i];
             if (width == 2) {
                 // little endian
                 instruction.push_back(byte(o >> 8));
@@ -84,6 +82,11 @@ namespace GC {
                 Instruction ins;
                 ins.assign(instruction.begin() + offset, instruction.end());
                 auto op = readUint16(ins);
+                operands.push_back(op);
+            } else if (operandWidth == 1) {
+                Instruction ins;
+                ins.assign(instruction.begin() + offset, instruction.end());
+                auto op = readUint8(ins);
                 operands.push_back(op);
             }
             offset += operandWidth;

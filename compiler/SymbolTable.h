@@ -15,7 +15,9 @@ namespace GC {
     enum class SymbolScope {
         Global,
         Local,
-        Builtin
+        Builtin,
+        Function,
+        Free
     };
 
     struct Symbol {
@@ -26,22 +28,20 @@ namespace GC {
 
     class SymbolTable {
     public:
-        explicit SymbolTable(bool isGlobal) : isGlobal{isGlobal} {
-        };
-
-        SymbolTable() {}
-
-        bool isGlobal{false};
+        SymbolTable(bool hasOuter) : hasOuter{hasOuter} {}
 
         std::map<string, Symbol> store{};
         int numDefinitions{0};
+        std::vector<Symbol> freeSymbols{};
+
+        bool hasOuter;
     };
 
     class SymbolTableManager {
     public:
         SymbolTableManager() {
             // init default global table
-            symbolTables.emplace_back(true);
+            symbolTables.emplace_back(false);
         }
 
         void enterScope();
@@ -53,6 +53,10 @@ namespace GC {
         Symbol define(const string &name);
 
         Symbol defineBuiltin(int index, string name);
+
+        Symbol defineFunctionName(string name);
+
+        Symbol defineFree(Symbol original);
 
         std::optional<Symbol> resolve(const string &name);
 

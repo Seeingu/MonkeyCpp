@@ -12,7 +12,7 @@ using namespace Common;
 namespace GC {
     struct CompiledFunctionObject : GIObject {
         CompiledFunctionObject(const Instruction &instructions, int numParameters, int numLocals) : numLocals(
-                numLocals), numParameters(numParameters), instructions(instructions) {}
+                numLocals), numParameters{numParameters}, instructions{instructions} {}
 
         ObjectType getType() override {
             return ObjectType::COMPILED_FUNCTION;
@@ -27,6 +27,17 @@ namespace GC {
         int numLocals;
     };
 
+    struct ClosureObject : GIObject {
+        ClosureObject(CompiledFunctionObject compiledFunctionObject, std::vector<shared_ptr<GIObject>> freeObjects)
+                : compiledFunctionObject(std::move(compiledFunctionObject)), freeObjects(std::move(freeObjects)) {}
+
+        CompiledFunctionObject compiledFunctionObject;
+        std::vector<shared_ptr<GIObject>> freeObjects;
+
+        ObjectType getType() override { return Common::ObjectType::CLOSURE; }
+
+        std::string inspect() override { return "Closure"; }
+    };
 }
 
 

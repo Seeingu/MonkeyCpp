@@ -41,13 +41,15 @@ namespace GC {
 
         shared_ptr<Common::GIObject> stackPop();
 
+        void closurePush(int constIndex, int numFree);
+
         int readUint16(int index);
 
         int readUint8(int index);
 
         std::vector<shared_ptr<Common::GIObject>> constants;
 
-        std::vector<shared_ptr<Common::GIObject>> stack;
+        std::vector<shared_ptr<Common::GIObject>> stack{};
         int sp{0};
         Code code{};
 
