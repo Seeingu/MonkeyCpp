@@ -14,9 +14,9 @@
         #name, \
         vector<int>{} \
 });
-#define OP_DEF_SIZE(name, size) definitions.emplace(GC::OpCode::name, GC::Definition{ \
+#define OP_DEF_SIZE(name, ...) definitions.emplace(GC::OpCode::name, GC::Definition{ \
         #name, \
-        vector<int>{size} \
+        vector<int>{ __VA_ARGS__ } \
 });
 
 namespace GC {
@@ -52,6 +52,9 @@ namespace GC {
         GetLocal,
         SetLocal,
         GetBuiltin,
+        Closure,
+        GetFree,
+        CurrentClosure
     };
 
 
@@ -90,6 +93,10 @@ namespace GC {
             OP_DEF_SIZE(GetLocal, 1);
             OP_DEF_SIZE(SetLocal, 1);
             OP_DEF_SIZE(GetBuiltin, 1);
+            OP_DEF_SIZE(Closure, 2, 1);
+            OP_DEF_SIZE(GetFree, 1);
+            OP_DEF(CurrentClosure);
+
         }
 
         int readUint16(Instruction instruction) {

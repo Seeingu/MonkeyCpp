@@ -39,10 +39,12 @@ TEST_CASE("instruction to string", "[code]") {
             code.makeInstruction(GC::OpCode::Add),
             code.makeInstruction(GC::OpCode::Constant, {2}),
             code.makeInstruction(GC::OpCode::Constant, {65535}),
+            code.makeInstruction(GC::OpCode::Closure, {65535, 255})
     };
     auto expected = R"(0000 Add
 0001 Constant 2
 0004 Constant 65535
+0007 Closure 65535 255
 )";
     GC::Instruction ins;
     for (auto &instruction: instructions) {

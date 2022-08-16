@@ -191,6 +191,7 @@ namespace Common {
         std::string toString() override;
 
         Token token;
+        string name{""};
         std::vector<std::unique_ptr<Identifier>> parameters;
         std::unique_ptr<BlockStatement> body;
     };

@@ -286,14 +286,14 @@ namespace GC {
                         break;
                     }
 
-                    auto compiledFunctionObject = static_cast<GC::CompiledFunctionObject *>(callee);
-                    if (numArgs != compiledFunctionObject->numParameters) {
+                    auto closureObject = static_cast<GC::ClosureObject *>(callee);
+                    if (numArgs != closureObject->compiledFunctionObject.numParameters) {
                         throw "wrong number of arguments";
                     }
                     auto basePointer = sp - numArgs;
 
-                    frameManager.framePush(Frame{*compiledFunctionObject, basePointer});
-                    sp = basePointer + compiledFunctionObject->numLocals;
+                    frameManager.framePush(Frame{*closureObject, basePointer});
+                    sp = basePointer + closureObject->compiledFunctionObject.numLocals;
 
                     break;
                 }
@@ -341,6 +341,27 @@ namespace GC {
                     stackPush(make_shared<BuiltinFunctionObject>(name));
                     break;
                 }
+                case OpCode::Closure: {
+                    auto constIndex = readUint16(ip + 1);
+                    auto numFree = readUint8(ip + 3);
+                    currentFrame()->ip += 3;
+
+                    closurePush(constIndex, numFree);
+                    break;
+                }
+                case OpCode::GetFree: {
+                    auto freeIndex = readUint8(ip + 1);
+                    currentFrame()->ip += 1;
+
+                    auto currentClosure = currentFrame()->closureObject;
+                    stackPush(currentClosure.freeObjects[freeIndex]);
+                    break;
+                }
+                case OpCode::CurrentClosure: {
+                    auto currentClosure = currentFrame()->closureObject;
+                    stackPush(make_shared<ClosureObject>(currentClosure));
+                    break;
+                }
                 default:
                     throw "unsupported instruction on vm: " + to_string(to_integer<int>(instruction));
             }
@@ -348,6 +369,20 @@ namespace GC {
 
     }
 
+    void VM::closurePush(int constIndex, int numFree) {
+        auto constant = constants[constIndex];
+        auto compiledFnObject = dynamic_cast<GC::CompiledFunctionObject *>(constant.get());
+        if (compiledFnObject == nullptr) {
+            throw fmt::format("closure index at {} is not a function", constIndex);
+        }
+        vector<shared_ptr<GIObject>> freeObjects{};
+        for (auto i = 0; i < numFree; i++) {
+            freeObjects.push_back(stack[sp - numFree + i]);
+        }
+        sp = sp - numFree;
+
+        stackPush(make_shared<ClosureObject>(*compiledFnObject, std::move(freeObjects)));
+    }
 
     void VM::stackPush(shared_ptr<Common::GIObject> object) {
         if (sp >= STACK_SIZE) {
@@ -356,6 +391,9 @@ namespace GC {
         if (sp < 0) {
             throw "invalid negative stack sp";
         }
+//        if (sp > stack.size()) {
+//            throw "invalid sp";
+//        }
         // TODO: use intuitive actions
         if (stack.size() == sp) {
             stack.push_back(object);

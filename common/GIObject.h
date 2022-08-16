@@ -32,6 +32,7 @@ namespace Common {
 
         // used in compiler
         COMPILED_FUNCTION,
+        CLOSURE,
     };
 
     struct GIObject {

@@ -246,6 +246,10 @@ TEST_CASE("test vm function", "[vm]") {
 
     vector<TestCase> cases = {
             {
+                    R"(let one = fn() { let one = 1; one };one();)",
+                                             1
+            },
+            {
                     R"(let fivePlusTen = fn() { 5 + 10; };
                         fivePlusTen();)",
                                              15
@@ -273,16 +277,28 @@ TEST_CASE("test vm function", "[vm]") {
                                              0 // null
             },
             {
-                    R"(let one = fn() { let one = 1; one };one();)",
-                                             1
-            },
-            {
                     R"(let identity = fn(a) { a; };identity(4);)",
                                              4
             },
+            // builtin
             {       R"(len(""))",            0},
             {       R"(len("four"))",        4},
             {       R"(len("hello world"))", 11},
+            {
+                    R"(let returnsOne = fn() { 1; };
+                    let returnsOneReturner = fn() { returnsOne; };
+                    returnsOneReturner()();)",
+                                             1
+            },
+            {
+                    R"(
+                let newClosure = fn(a) {
+			        fn() { a; };
+		        };
+		        let closure = newClosure(99);
+		        closure();)",
+                                             99
+            }
     };
 
     for (auto &testCase: cases) {

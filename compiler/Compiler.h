@@ -90,6 +90,8 @@ namespace GC {
             return scopes[scopeIndex].previousInstruction;
         }
 
+        void loadSymbol(Symbol symbol);
+
         SymbolTableManager symbolTableManager{};
 
         Code code{};

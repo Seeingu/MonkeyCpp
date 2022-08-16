@@ -15,6 +15,7 @@
 #define DUMB_INSTRUCTION_ADDRESS 9999
 
 namespace GC {
+
     void Compiler::compile(Common::Node *node) {
         switch (node->getType()) {
             case Common::NodeType::Program: {
@@ -123,9 +124,9 @@ namespace GC {
             }
             case Common::NodeType::LetStatement: {
                 auto letStmt = static_cast<Common::LetStatement *>(node);
-                compile(letStmt->value.get());
-
                 auto symbol = symbolTableManager.define(letStmt->name->value);
+
+                compile(letStmt->value.get());
                 if (symbol.scope == SymbolScope::Global) {
                     emit(OpCode::SetGlobal, {symbol.index});
                 } else {
@@ -137,20 +138,7 @@ namespace GC {
                 auto id = static_cast<Common::Identifier *>(node);
                 auto symbol = symbolTableManager.resolve(id->value);
                 if (symbol.has_value()) {
-                    switch (symbol->scope) {
-                        case SymbolScope::Global:
-                            emit(OpCode::GetGlobal, {symbol.value().index});
-                            break;
-                        case SymbolScope::Builtin:
-                            emit(OpCode::GetBuiltin, {symbol.value().index});
-                            break;
-                        case SymbolScope::Local:
-                            emit(OpCode::GetLocal, {symbol.value().index});
-                            break;
-                        default:
-                            // unreachable
-                            break;
-                    }
+                    loadSymbol(*symbol);
                 } else {
                     throw fmt::format("undefined variable {}", id->value);
                 }
@@ -204,6 +192,11 @@ namespace GC {
 
                 enterScope();
 
+                auto name = functionExpr->name;
+                if (!name.empty()) {
+                    symbolTableManager.defineFunctionName(name);
+                }
+
                 for (auto &p: functionExpr->parameters) {
                     symbolTableManager.define(p->value);
                 }
@@ -216,15 +209,21 @@ namespace GC {
                     emit(OpCode::Return);
                 }
 
+                auto freeSymbols = symbolTableManager.symbolTable->freeSymbols;
                 auto numLocals = symbolTableManager.symbolTable->numDefinitions;;
                 auto localInstructions = leaveScope();
-                emit(OpCode::Constant, {
-                        addConstant(make_shared<GC::CompiledFunctionObject>(
-                                localInstructions,
-                                functionExpr->parameters.size(),
-                                numLocals
-                        ))
-                });
+
+                for (auto &s: freeSymbols) {
+                    auto symbol = symbolTableManager.resolve(s.name);
+                    loadSymbol(symbol.value());
+                }
+
+                auto fnIndex = addConstant(make_shared<GC::CompiledFunctionObject>(
+                        localInstructions,
+                        functionExpr->parameters.size(),
+                        numLocals
+                ));
+                emit(OpCode::Closure, {fnIndex, int(freeSymbols.size())});
                 break;
             }
             case Common::NodeType::CallExpression: {
@@ -257,6 +256,26 @@ namespace GC {
         setLastInstruction(opCode, pos);
 
         return pos;
+    }
+
+    void Compiler::loadSymbol(Symbol symbol) {
+        switch (symbol.scope) {
+            case SymbolScope::Global:
+                emit(OpCode::GetGlobal, {symbol.index});
+                break;
+            case SymbolScope::Local:
+                emit(OpCode::GetLocal, {symbol.index});
+                break;
+            case SymbolScope::Builtin:
+                emit(OpCode::GetBuiltin, {symbol.index});
+                break;
+            case SymbolScope::Free:
+                emit(OpCode::GetFree, {symbol.index});
+                break;
+            case SymbolScope::Function:
+                emit(OpCode::CurrentClosure);
+                break;
+        }
     }
 
 

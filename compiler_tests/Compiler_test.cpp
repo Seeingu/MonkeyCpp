@@ -310,6 +310,7 @@ TEST_CASE("test compile", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
+            // builtin
             {
              "len([]);",
                     {},
@@ -319,7 +320,8 @@ TEST_CASE("test compile", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Call, {1}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
-            }
+            },
+
 
     };
 
@@ -367,35 +369,52 @@ TEST_CASE("compile function", "[compiler]") {
                             },
                     },
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Closure, {0, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
             {
                     "fn() { 5 + 10 }",
-                    {       5, 10,
-                                   vector<GC::Instruction>{
-                                           code.makeInstruction(GC::OpCode::Constant, {0}),
-                                           code.makeInstruction(GC::OpCode::Constant, {1}),
-                                           code.makeInstruction(GC::OpCode::Add),
-                                           code.makeInstruction(GC::OpCode::ReturnValue),
-                                   }
+                    {       5,  10,
+                                    vector<GC::Instruction>{
+                                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                                            code.makeInstruction(GC::OpCode::Add),
+                                            code.makeInstruction(GC::OpCode::ReturnValue),
+                                    }
                     },
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Closure, {2, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
             {
                     R"(let noArg = fn() { 24 };noArg();)",
                     {       24,
-                               vector<GC::Instruction>{
-                                       code.makeInstruction(GC::OpCode::Constant, {0}),
-                                       code.makeInstruction(GC::OpCode::ReturnValue),
-                               },
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue),
+                                },
                     },
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Call, {0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let one = fn() { let one = 1; one };one();)",
+                    {       1,
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                }},
+                    {
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::GetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::Call, {0}),
@@ -409,9 +428,9 @@ TEST_CASE("compile function", "[compiler]") {
                                     code.makeInstruction(GC::OpCode::GetLocal, {0}),
                                     code.makeInstruction(GC::OpCode::ReturnValue)
                             },
-                               12},
+                                12},
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Closure, {0, 0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::GetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::Constant, {1}),
@@ -430,9 +449,9 @@ TEST_CASE("compile function", "[compiler]") {
                                     code.makeInstruction(GC::OpCode::GetLocal, {2}),
                                     code.makeInstruction(GC::OpCode::ReturnValue),
                             },
-                               10, 11, 12},
+                                10, 11, 12},
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::Closure, {0, 0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::GetGlobal, {0}),
                             code.makeInstruction(GC::OpCode::Constant, {1}),
@@ -445,46 +464,132 @@ TEST_CASE("compile function", "[compiler]") {
             {
                     R"(let num = 55;fn() { num })",
                     {       55,
-                               vector<GC::Instruction>{
-                                       code.makeInstruction(GC::OpCode::GetGlobal, {0}),
-                                       code.makeInstruction(GC::OpCode::ReturnValue)
-                               },
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },
                     },
                     {
                             code.makeInstruction(GC::OpCode::Constant, {0}),
                             code.makeInstruction(GC::OpCode::SetGlobal, {0}),
-                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
             {
                     R"(fn() {let num = 55;num})",
                     {       55,
-                               vector<GC::Instruction>{
-                                       code.makeInstruction(GC::OpCode::Constant, {0}),
-                                       code.makeInstruction(GC::OpCode::SetLocal, {0}),
-                                       code.makeInstruction(GC::OpCode::GetLocal, {0}),
-                                       code.makeInstruction(GC::OpCode::ReturnValue)
-                               },
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },
                     },
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
             {
                     "fn() { return 1; }",
                     {       1,
-                               vector<GC::Instruction>{
-                                       code.makeInstruction(GC::OpCode::Constant, {0}),
-                                       code.makeInstruction(GC::OpCode::ReturnValue)
-                               },
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },
                     },
                     {
-                            code.makeInstruction(GC::OpCode::Constant, {1}),
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
             },
+            // closure
+            {
+                    R"(
+                    fn(a) {
+                        fn(b) {
+                            fn(c) {
+                                a + b + c
+                            }
+                        }
+                    };)",
+                    {
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::GetFree, {0}),
+                                    code.makeInstruction(GC::OpCode::GetFree, {1}),
+                                    code.makeInstruction(GC::OpCode::Add),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::Add),
+                                    code.makeInstruction(GC::OpCode::ReturnValue)
+                            },
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::GetFree, {0}),
+                                        code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::Closure, {0, 2}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },
+                                    vector<GC::Instruction>{
+                                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                            code.makeInstruction(GC::OpCode::Closure, {1, 1}),
+                                            code.makeInstruction(GC::OpCode::ReturnValue)
+                                    }
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Closure, {2, 0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let global = 55;
+                fn() {
+                    let a = 66;
+
+                    fn() {
+                        let b = 77;
+
+                        fn() {
+                            let c = 88;
+
+                            global + a + b + c;
+                        }
+                    }
+                })",
+                    {       55, 66, 77, 88,
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::Constant, {3}),
+                                    code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                                    code.makeInstruction(GC::OpCode::GetFree, {0}),
+                                    code.makeInstruction(GC::OpCode::Add),
+                                    code.makeInstruction(GC::OpCode::GetFree, {1}),
+                                    code.makeInstruction(GC::OpCode::Add),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::Add),
+                                    code.makeInstruction(GC::OpCode::ReturnValue)
+                            },
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::Constant, {2}),
+                                    code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::GetFree, {0}),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::Closure, {4, 2}),
+                                    code.makeInstruction(GC::OpCode::ReturnValue)
+                            },
+                            vector<GC::Instruction>{
+                                    code.makeInstruction(GC::OpCode::Constant, {1}),
+                                    code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                    code.makeInstruction(GC::OpCode::Closure, {5, 1}),
+                                    code.makeInstruction(GC::OpCode::ReturnValue)
+                            }},
+                    {
+                            code.makeInstruction(GC::OpCode::Constant, {0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Closure, {6, 0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            }
     };
 
     for (auto &testCase: cases) {

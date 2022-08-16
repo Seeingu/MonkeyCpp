@@ -15,10 +15,10 @@ namespace GC {
     using namespace std;
 
     struct Frame {
-        Frame(CompiledFunctionObject functionObject, int basePointer, int ip = -1) :
-                functionObject(functionObject), ip(ip), basePointer(basePointer) {}
+        Frame(ClosureObject closureObject, int basePointer, int ip = -1) :
+                closureObject{closureObject}, ip(ip), basePointer(basePointer) {}
 
-        CompiledFunctionObject functionObject;
+        ClosureObject closureObject;
         int ip;
         int basePointer;
     };
@@ -26,8 +26,9 @@ namespace GC {
     class FrameManager {
     public:
         FrameManager(Instruction instructions) {
+            auto fn = GC::CompiledFunctionObject(instructions, 0, 0);
             auto mainFrame = Frame{
-                    GC::CompiledFunctionObject(instructions, 0, 0),
+                    ClosureObject(std::move(fn), {}),
                     0
             };
             frames.push_back(mainFrame);
@@ -59,7 +60,7 @@ namespace GC {
         }
 
         Instruction getInstructions() {
-            return currentFrame()->functionObject.instructions;
+            return currentFrame()->closureObject.compiledFunctionObject.instructions;
         }
 
         std::vector<Frame> frames{};
