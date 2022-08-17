@@ -61,7 +61,7 @@ namespace Common {
         auto value = parseExpression(Precedence::LOWEST);
         if (value->getType() == NodeType::FunctionExpression) {
             auto fn = static_cast<FunctionExpression *>(value.get());
-            fn->name = currentToken.literal;
+            fn->name = name->value;
         }
         if (peekToken.type == TokenType::SEMICOLON) {
             nextToken();

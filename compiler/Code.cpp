@@ -42,7 +42,7 @@ namespace GC {
             } else if (width == 1) {
                 instruction.push_back(byte(o));
             } else {
-                throw "operand width size not matched: " + width;
+                throw "operand width size not matched: " + to_string(width);
             }
         }
 
