@@ -298,6 +298,17 @@ TEST_CASE("test vm function", "[vm]") {
 		        let closure = newClosure(99);
 		        closure();)",
                                              99
+            },
+            {
+                    R"(let countDown = fn(x) {
+                        if (x == 0) {
+                            return 0;
+                        } else {
+                            countDown(x - 1);
+                        }
+                    };
+                    countDown(1);)",
+                                             0
             }
     };
 

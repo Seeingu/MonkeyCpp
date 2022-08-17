@@ -360,6 +360,7 @@ TEST_CASE("compile function", "[compiler]") {
 
     GC::Code code{};
 
+
     vector<TestCase> cases = {
             {
                     "fn() {}",
@@ -589,6 +590,59 @@ TEST_CASE("compile function", "[compiler]") {
                             code.makeInstruction(GC::OpCode::Closure, {6, 0}),
                             code.makeInstruction(GC::OpCode::Pop)
                     }
+            },
+            // recursive
+            {
+                    R"(let countDown = fn(x) { countDown(x - 1); };
+			    countDown(1);)",
+                    {       1,
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::CurrentClosure),
+                                        code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::Sub),
+                                        code.makeInstruction(GC::OpCode::Call, {1}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },  1
+                    },
+                    {
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Call, {1}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
+            },
+            {
+                    R"(let wrapper = fn() {
+                    let countDown = fn(x) { countDown(x - 1); };
+                    countDown(1);
+			    };
+			    wrapper();)",
+                    {       1,
+                                vector<GC::Instruction>{
+                                        code.makeInstruction(GC::OpCode::CurrentClosure),
+                                        code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                                        code.makeInstruction(GC::OpCode::Constant, {0}),
+                                        code.makeInstruction(GC::OpCode::Sub),
+                                        code.makeInstruction(GC::OpCode::Call, {1}),
+                                        code.makeInstruction(GC::OpCode::ReturnValue)
+                                },  1,  vector<GC::Instruction>{
+                            code.makeInstruction(GC::OpCode::Closure, {1, 0}),
+                            code.makeInstruction(GC::OpCode::SetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::GetLocal, {0}),
+                            code.makeInstruction(GC::OpCode::Constant, {2}),
+                            code.makeInstruction(GC::OpCode::Call, {1}),
+                            code.makeInstruction(GC::OpCode::ReturnValue)
+                    }},
+                    {
+                            code.makeInstruction(GC::OpCode::Closure, {3, 0}),
+                            code.makeInstruction(GC::OpCode::SetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::GetGlobal, {0}),
+                            code.makeInstruction(GC::OpCode::Call, {0}),
+                            code.makeInstruction(GC::OpCode::Pop)
+                    }
             }
     };
 
@@ -604,7 +658,7 @@ TEST_CASE("compile function", "[compiler]") {
         for (auto &instruction: testCase.expectedInstructions) {
             ins.insert(ins.end(), instruction.begin(), instruction.end());
         }
-        REQUIRE(ins == compiler.getByteCode().instructions);
+        REQUIRE(compiler.getByteCode().instructions == ins);
         for (int i = 0; i < compiler.constants.size(); i++) {
             if (compiler.constants[i]->getType() == Common::ObjectType::INTEGER) {
                 auto value = static_cast<Common::IntegerObject *>(compiler.constants[i].get())->value;
