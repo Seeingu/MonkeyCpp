@@ -12,19 +12,24 @@
 #include "Frame.h"
 
 #define STACK_SIZE 1024
+#define GLOBALS_SIZE 65536
 
 namespace GC {
     using namespace std;
+
+    class VMException : public std::runtime_error {
+    public:
+        explicit VMException(const string &msg) : std::runtime_error(msg) {}
+    };
 
     class VM {
     public:
         explicit VM(ByteCode byteCode) : constants{byteCode.constants}, frameManager{byteCode.instructions} {
             stack.reserve(STACK_SIZE);
+            globals.reserve(GLOBALS_SIZE);
         }
 
         void run();
-
-        shared_ptr<Common::GIObject> stackTop();
 
         shared_ptr<Common::GIObject> lastStackElem();
 
@@ -37,7 +42,7 @@ namespace GC {
             return frameManager.getInstructions();
         }
 
-        void stackPush(shared_ptr<Common::GIObject> object);
+        void stackPush(const shared_ptr<Common::GIObject> &object);
 
         shared_ptr<Common::GIObject> stackPop();
 

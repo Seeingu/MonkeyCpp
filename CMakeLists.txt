@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GoInterpreter)
+project(MonkeyRepl)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -33,4 +33,4 @@ FetchContent_MakeAvailable(Catch2)
 add_subdirectory(compiler_tests)
 add_subdirectory(interpreter_tests)
 
-target_link_libraries(${PROJECT_NAME} interpreter cpp-terminal)
+target_link_libraries(${PROJECT_NAME} interpreter compiler cpp-terminal)
