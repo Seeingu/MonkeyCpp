@@ -21,7 +21,7 @@ bool determine_completeness([[maybe_unused]] std::string command) {
     return complete;
 }
 
-int main() {
+int main(int argc, char **argv) {
     try {
         if (!Term::is_stdin_a_tty()) {
             std::cout << "The terminal is not attached to a TTY and therefore "

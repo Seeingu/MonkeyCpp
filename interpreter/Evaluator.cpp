@@ -327,7 +327,6 @@ namespace GI {
                     if (elem->getType() == ObjectType::INTEGER) {
                         return make_unique<IntegerObject>(static_cast<IntegerObject *>(elem)->value);
                     }
-                    return makeErrorObject("TODO: unsupported array index value");
                 } else if (left->getType() == ObjectType::HASH) {
                     auto hashObject = static_cast<HashObject *>(left.get());
                     auto hashKey = index->hash();

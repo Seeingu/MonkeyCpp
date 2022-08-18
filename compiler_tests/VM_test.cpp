@@ -12,7 +12,6 @@
 #include <iterator>
 #include <variant>
 #include "catch2/catch_all.hpp"
-#include "magic_enum.hpp"
 #include "fmt/core.h"
 #include "Lexer.h"
 #include "Parser.h"

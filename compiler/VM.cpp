@@ -9,25 +9,16 @@
 #include "fmt/format.h"
 #include "Builtin.h"
 #include <cstddef>
-#include <iostream>
 #include <string>
 
-
 namespace GC {
-    bool isTruthy(shared_ptr<Common::GIObject> object) {
+    bool isTruthy(const shared_ptr<Common::GIObject> &object) {
         if (object->getType() == Common::ObjectType::BOOLEAN) {
             return static_cast<Common::BooleanObject *>(object.get())->value;
         } else if (object->getType() == Common::ObjectType::_NULL) {
             return false;
         }
         return true;
-    }
-
-    shared_ptr<Common::GIObject> VM::stackTop() {
-        if (sp == 0) {
-            return nullptr;
-        }
-        return stack[sp - 1];
     }
 
     shared_ptr<Common::GIObject> VM::lastStackElem() {
@@ -85,8 +76,8 @@ namespace GC {
                         if (opCode == OpCode::Add) {
                             stackPush(make_shared<Common::StringObject>(leftValue + rightValue));
                         } else {
-                            throw fmt::format("unsupported binary operation {} on string",
-                                              to_string(int(opCode)));
+                            throw VMException{fmt::format("unsupported binary operation {} on string",
+                                                          to_string(int(opCode)))};
                         }
                     }
                     break;
@@ -131,14 +122,14 @@ namespace GC {
                                     stackPush(make_shared<Common::BooleanObject>(leftValue != rightValue));
                                     break;
                                 case OpCode::GreaterThan:
-                                    throw "unsupported greater than instruction on bool";
+                                    throw VMException{"unsupported greater than instruction on bool"};
                                 default:
                                     // unreachable
                                     break;
                             }
                         } else {
-                            throw fmt::format("unsupported infix operation on type: {}",
-                                              magic_enum::enum_name(left->getType()));
+                            throw VMException{fmt::format("unsupported infix operation on type: {}",
+                                                          magic_enum::enum_name(left->getType()))};
                         }
 
                     }
@@ -158,8 +149,8 @@ namespace GC {
                 case OpCode::Minus: {
                     auto operand = stackPop();
                     if (operand->getType() != Common::ObjectType::INTEGER) {
-                        throw fmt::format("unsupported type for negation: {}",
-                                          magic_enum::enum_name(operand->getType()));
+                        throw VMException{fmt::format("unsupported type for negation: {}",
+                                                      magic_enum::enum_name(operand->getType()))};
                     }
                     auto integerObject = static_cast<Common::IntegerObject *>(operand.get());
                     stackPush(make_shared<Common::IntegerObject>(-integerObject->value));
@@ -191,11 +182,7 @@ namespace GC {
                     auto globalIndex = readUint16(ip + 1);
                     currentFrame()->ip += 2;
 
-                    if (globals.size() == globalIndex) {
-                        globals.push_back(stackPop());
-                    } else {
-                        globals[globalIndex] = stackPop();
-                    }
+                    globals[globalIndex] = stackPop();
 
                     break;
                 }
@@ -263,8 +250,8 @@ namespace GC {
                             stackPush(make_shared<Common::NullObject>());
                         }
                     } else {
-                        throw fmt::format("unsupported index instruction on type: {}",
-                                          magic_enum::enum_name(object->getType()));
+                        throw VMException{fmt::format("unsupported index instruction on type: {}",
+                                                      magic_enum::enum_name(object->getType()))};
                     }
                     break;
                 }
@@ -288,7 +275,7 @@ namespace GC {
 
                     auto closureObject = static_cast<GC::ClosureObject *>(callee);
                     if (numArgs != closureObject->compiledFunctionObject.numParameters) {
-                        throw "wrong number of arguments";
+                        throw VMException{"wrong number of arguments"};
                     }
                     auto basePointer = sp - numArgs;
 
@@ -324,11 +311,8 @@ namespace GC {
                     currentFrame()->ip += 1;
 
                     auto index = currentFrame()->basePointer + int(localIndex);
-                    if (index >= stack.size()) {
-                        stack.push_back(stackPop());
-                    } else {
-                        stack[index] = stackPop();
-                    }
+
+                    stack[index] = stackPop();
                     break;
                 }
                 case OpCode::GetBuiltin: {
@@ -363,7 +347,7 @@ namespace GC {
                     break;
                 }
                 default:
-                    throw "unsupported instruction on vm: " + to_string(to_integer<int>(instruction));
+                    throw VMException{"unsupported instruction on vm: " + to_string(to_integer<int>(instruction))};
             }
         }
 
@@ -373,7 +357,7 @@ namespace GC {
         auto constant = constants[constIndex];
         auto compiledFnObject = dynamic_cast<GC::CompiledFunctionObject *>(constant.get());
         if (compiledFnObject == nullptr) {
-            throw fmt::format("closure index at {} is not a function", constIndex);
+            throw VMException{fmt::format("closure index at {} is not a function", constIndex)};
         }
         vector<shared_ptr<GIObject>> freeObjects{};
         for (auto i = 0; i < numFree; i++) {
@@ -384,22 +368,14 @@ namespace GC {
         stackPush(make_shared<ClosureObject>(*compiledFnObject, std::move(freeObjects)));
     }
 
-    void VM::stackPush(shared_ptr<Common::GIObject> object) {
+    void VM::stackPush(const shared_ptr<Common::GIObject> &object) {
         if (sp >= STACK_SIZE) {
-            throw "Stack overflow";
+            throw VMException{"Stack overflow"};
         }
         if (sp < 0) {
-            throw "invalid negative stack sp";
+            throw VMException{"invalid negative stack sp"};
         }
-//        if (sp > stack.size()) {
-//            throw "invalid sp";
-//        }
-        // TODO: use intuitive actions
-        if (stack.size() == sp) {
-            stack.push_back(object);
-        } else {
-            stack[sp] = object;
-        }
+        stack[sp] = object;
         sp++;
     }
 
@@ -422,6 +398,7 @@ namespace GC {
         ins.assign(instructions.begin() + index, instructions.end());
         return code.readUint8(ins);
     }
+
 }
 
 #pragma clang diagnostic pop
