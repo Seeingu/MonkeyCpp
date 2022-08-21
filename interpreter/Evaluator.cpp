@@ -7,6 +7,7 @@
 //
 
 #include "Evaluator.h"
+#include "InterpreterObject.h"
 #include "fmt/format.h"
 #include "magic_enum.hpp"
 #include <typeindex>

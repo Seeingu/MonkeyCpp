@@ -262,8 +262,7 @@ namespace GC {
                     auto callee = stack[sp - 1 - numArgs].get();
                     if (callee->getType() == Common::ObjectType::BUILTIN) {
                         auto name = static_cast<Common::BuiltinFunctionObject *>(callee)->name;
-                        BuiltinArguments args{};
-                        args.assign(stack.begin() + sp - numArgs, stack.begin() + sp);
+                        BuiltinArguments args{stack.begin() + sp - numArgs, stack.begin() + sp};
                         auto result = evalBuiltin(name, args);
                         if (result != nullptr) {
                             stackPush(std::move(result));
@@ -386,16 +385,14 @@ namespace GC {
     }
 
     int VM::readUint16(int index) {
-        Instruction ins;
         auto instructions = getInstructions();
-        ins.assign(instructions.begin() + index, instructions.end());
+        Instruction ins{instructions.begin() + index, instructions.end()};
         return code.readUint16(ins);
     }
 
     int VM::readUint8(int index) {
-        Instruction ins;
         auto instructions = getInstructions();
-        ins.assign(instructions.begin() + index, instructions.end());
+        Instruction ins{instructions.begin() + index, instructions.end()};
         return code.readUint8(ins);
     }
 

@@ -4,23 +4,23 @@
 
 #include "Ast.h"
 #include <sstream>
+#include "fmt/core.h"
+#include "fmt/ostream.h"
 
 namespace Common {
     std::string Program::toString() {
         std::stringstream ss;
-        for (auto &stmt: statements) {
+        for_each(statements.begin(), statements.end(), [&](auto &stmt) {
             ss << stmt->toString();
-        }
+        });
         return ss.str();
     }
 
     std::string LetStatement::toString() {
         std::stringstream ss;
-        ss << token.literal << " ";
-        ss << name->toString();
-        ss << " = ";
+        ss << fmt::format("{} {}", token.literal, name->toString());
         if (value != nullptr) {
-            ss << value->toString();
+            ss << fmt::format(" = {}", value->toString());
         }
         ss << ";";
         return ss.str();
@@ -32,16 +32,13 @@ namespace Common {
 
     std::string PrefixExpression::toString() {
         std::stringstream ss;
-        ss << "(" << prefixOperator;
-        ss << rightExpression->toString() << ")";
+        ss << fmt::format("({}{})", prefixOperator, rightExpression->toString());
         return ss.str();
     }
 
     std::string IfExpression::toString() {
         std::stringstream ss;
-        ss << "if ";
-        ss << condition->toString();
-        ss << " " << consequence->toString();
+        ss << fmt::format("if {} {}", condition->toString(), consequence->toString());
         if (alternative != nullptr) {
             ss << "else " << alternative->toString();
         }
@@ -49,18 +46,11 @@ namespace Common {
     }
 
     std::string FunctionExpression::toString() {
-        std::stringstream ss;
-        std::stringstream paramsStream;
-        for (auto &param: parameters) {
-            paramsStream << param->toString() << ", ";
-        }
-        // remove end comma
-        paramsStream.seekp(-2, std::ios_base::end);
-        ss << "fn(";
-        ss << paramsStream.str();
-        ss << ")";
-        ss << body->toString();
-        return ss.str();
+        vector<string> params{};
+        transform(parameters.begin(), parameters.end(), params.begin(), [](auto &p) {
+            return p->toString();
+        });
+        return fmt::format("fn({}){}", fmt::join(params, ", "), body->toString());
     }
 
     std::string BlockStatement::toString() {
@@ -72,9 +62,7 @@ namespace Common {
     }
 
     std::string ReturnStatement::toString() {
-        std::stringstream ss;
-        ss << "return " << returnValue->toString();
-        return ss.str();
+        return fmt::format("return {}", returnValue->toString());
     }
 
     std::string ExpressionStatement::toString() {
@@ -82,23 +70,15 @@ namespace Common {
     }
 
     std::string InfixExpression::toString() {
-        std::stringstream ss;
-        ss << "(" << leftExpression->toString();
-        ss << " " << infixOperator << " ";
-        ss << rightExpression->toString() << ")";
-        return ss.str();
+        return fmt::format("({} {} {})", leftExpression->toString(), infixOperator, rightExpression->toString());
     }
 
     std::string CallExpression::toString() {
-        std::stringstream ss;
-        ss << name->toString() << "(";
-        std::stringstream argsStream;
-        for (auto &arg: arguments) {
-            argsStream << arg->toString() << ", ";
-        }
-        argsStream.seekp(-2, std::ios::end);
-        ss << argsStream.str() << ")";
-        return ss.str();
+        vector<string> args{};
+        transform(arguments.begin(), arguments.end(), args.begin(), [](auto &p) {
+            return p->toString();
+        });
+        return fmt::format("{}({})", name->toString(), fmt::join(args, ", "));
     }
 
     string HashExpression::toString() {
@@ -112,16 +92,11 @@ namespace Common {
     }
 
     std::string ArrayExpression::toString() {
-        std::ostringstream ss;
-        ss << "[";
-        std::ostringstream elemStream;
-        for (auto &elem: elements) {
-            elemStream << elem->toString() << ", ";
-        }
-        elemStream.seekp(-2, std::ios::end);
-        ss << elemStream.str();
-        ss << "]";
-        return ss.str();
+        vector<string> elems{};
+        transform(elements.begin(), elements.end(), elems.begin(), [](auto &e) {
+            return e->toString();
+        });
+        return fmt::format("[{}]", fmt::join(elems, ", "));
     }
 
 }
