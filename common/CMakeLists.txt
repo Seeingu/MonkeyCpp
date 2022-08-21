@@ -5,7 +5,6 @@ set(HEADER_FILES
         Token.h
         Ast.h
         Parser.h
-        Environment.h
         GIObject.h
         Builtin.h)
 
@@ -14,7 +13,6 @@ set(SOURCE_FILES
         Token.cpp
         Ast.cpp
         Parser.cpp
-        Environment.cpp
         GIObject.cpp
         Builtin.cpp)
 

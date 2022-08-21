@@ -10,11 +10,8 @@
 #include <iterator>
 #include "Ast.h"
 #include "fmt/core.h"
-#include "Environment.h"
-
 
 namespace Common {
-    class Environment;
 
     using HashKey = std::size_t;
 
@@ -26,9 +23,10 @@ namespace Common {
         STRING,
         BUILTIN,
         RETURN_VALUE,
-        FUNCTION,
         ARRAY,
         HASH,
+        // used in interpreter
+        FUNCTION,
 
         // used in compiler
         COMPILED_FUNCTION,
@@ -113,38 +111,9 @@ namespace Common {
 
         ObjectType getType() override { return ObjectType::ERROR; }
 
-        std::string inspect() override { return "Error: " + message; }
+        std::string inspect() override { return fmt::format("Error: {}", message); }
 
         std::string message;
-    };
-
-    struct FunctionObject : GIObject {
-        FunctionObject(
-                std::vector<std::unique_ptr<Identifier>> parameters,
-                std::unique_ptr<BlockStatement> body,
-                std::shared_ptr<Environment> environment
-        ) : parameters{std::move(parameters)}, body{std::move(body)}, environment{std::move(environment)} {}
-
-        ObjectType getType() override { return ObjectType::FUNCTION; }
-
-        std::string inspect() override {
-            std::stringstream ss;
-
-            std::vector<std::string> params;
-            for (auto &param: parameters) {
-                params.push_back(param->toString());
-            }
-            std::stringstream paramsStream;
-            std::copy(params.begin(), params.end() - 1, std::ostream_iterator<std::string>(paramsStream, ","));
-            ss << "(" << paramsStream.str() << ")";
-            ss << " {" << std::endl;
-            ss << body->toString() << std::endl << "}";
-            return ss.str();
-        }
-
-        std::vector<std::unique_ptr<Identifier>> parameters;
-        std::unique_ptr<BlockStatement> body;
-        std::shared_ptr<Environment> environment;
     };
 
     struct BuiltinFunctionObject : GIObject {

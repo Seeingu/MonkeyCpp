@@ -19,7 +19,7 @@ namespace GC {
         }
 
         string inspect() override {
-            return "";
+            return "CompiledFunction";
         }
 
         Instruction instructions;

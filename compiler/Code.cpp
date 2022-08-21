@@ -79,13 +79,11 @@ namespace GC {
         auto offset = 0;
         for (auto &operandWidth: definition->operandWidths) {
             if (operandWidth == 2) {
-                Instruction ins;
-                ins.assign(instruction.begin() + offset, instruction.end());
+                Instruction ins{instruction.begin() + offset, instruction.end()};
                 auto op = readUint16(ins);
                 operands.push_back(op);
             } else if (operandWidth == 1) {
-                Instruction ins;
-                ins.assign(instruction.begin() + offset, instruction.end());
+                Instruction ins{instruction.begin() + offset, instruction.end()};
                 auto op = readUint8(ins);
                 operands.push_back(op);
             }

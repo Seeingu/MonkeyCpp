@@ -2,8 +2,8 @@
 #include <cpp-terminal/input.hpp>
 #include <cpp-terminal/prompt.hpp>
 #include "common/Lexer.h"
-#include "common/Environment.h"
 #include "common/Parser.h"
+#include "interpreter/Environment.h"
 #include "interpreter/Evaluator.h"
 
 using Term::Key;
