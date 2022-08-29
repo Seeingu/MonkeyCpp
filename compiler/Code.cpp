@@ -3,7 +3,6 @@
 //
 
 #include "Code.h"
-#include <numeric>
 #include <cstddef>
 #include <sstream>
 #include <string>
@@ -25,9 +24,7 @@ namespace GC {
         if (!definitions.contains(code)) {
             return {};
         }
-        int instructionLength = 1;
         auto definition = definitions[code];
-        instructionLength += std::accumulate(definition.operandWidths.begin(), definition.operandWidths.end(), 0);
 
         auto instruction = Instruction{};
         instruction.push_back(byte{code});

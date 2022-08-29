@@ -9,6 +9,7 @@
 #include <string>
 #include <map>
 #include <cstddef>
+#include <numeric>
 
 #define OP_DEF(name) definitions.emplace(GC::OpCode::name, GC::Definition{ \
         #name, \
@@ -99,14 +100,37 @@ namespace GC {
 
         }
 
-        int readUint16(Instruction instruction) {
-            int op = to_integer<int>(instruction[0]) << 8;
-            op = op | to_integer<int>(instruction[1]);
+        int readSingleInstruction(OpCode code, const Instruction &instruction, int index) {
+            return readInstructions(code, instruction, index)[0];
+        }
+
+        vector<int> readInstructions(OpCode code, const Instruction &instruction, int index) {
+            vector<int> result{};
+            int offset = index;
+            for (auto width: definitions[code].operandWidths) {
+                if (width == 2) {
+                    result.push_back(readUint16(instruction, offset));
+                } else if (width == 1) {
+                    result.push_back(readUint8(instruction, offset));
+                }
+                offset += width;
+            }
+            return result;
+        }
+
+        int getOperandsSize(OpCode code) {
+            auto definition = definitions[code];
+            return std::accumulate(definition.operandWidths.begin(), definition.operandWidths.end(), 0);
+        }
+
+        static int readUint16(Instruction instruction, int offset = 0) {
+            int op = to_integer<int>(instruction[offset]) << 8;
+            op = op | to_integer<int>(instruction[offset + 1]);
             return op;
         }
 
-        int readUint8(Instruction instruction) {
-            int op = to_integer<int>(instruction[0]);
+        static int readUint8(Instruction instruction, int offset = 0) {
+            int op = to_integer<int>(instruction[offset]);
             return op;
         }
 
@@ -116,7 +140,6 @@ namespace GC {
 
         pair<vector<int>, int> readOperands(Definition *definition, Instruction instruction);
 
-    private:
         std::map<OpCode, Definition> definitions;
     };
 }
