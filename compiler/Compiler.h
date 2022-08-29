@@ -14,7 +14,6 @@
 namespace GC {
     using namespace std;
 
-
     struct EmittedInstruction {
         OpCode code;
         int position;
@@ -34,12 +33,14 @@ namespace GC {
     class Compiler {
     public:
         Compiler() {
+            // global scope
             scopes.push_back(
                     {
                             .instructions =  {},
                             .lastInstruction =  EmittedInstruction{},
                             .previousInstruction =  EmittedInstruction{}
                     });
+            // builtin function
             symbolTableManager.defineBuiltin(0, "len");
         }
 

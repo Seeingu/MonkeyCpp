@@ -16,6 +16,7 @@
 
 namespace GC {
     using namespace std;
+    using namespace Common;
 
     class VMException : public std::runtime_error {
     public:
@@ -48,9 +49,11 @@ namespace GC {
 
         void closurePush(int constIndex, int numFree);
 
-        int readUint16(int index);
+        int readFirstOperand(GC::OpCode opCode, int ip);
 
-        int readUint8(int index);
+        int readFirstOperandAndMoveIP(OpCode code, int ip);
+
+        vector<int> readOperandsAndMoveIP(OpCode code, int ip);
 
         std::vector<shared_ptr<Common::GIObject>> constants;
 

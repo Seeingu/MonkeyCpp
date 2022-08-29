@@ -10,16 +10,22 @@
 #include "Builtin.h"
 #include <cstddef>
 #include <string>
+#include <numeric>
 
 namespace GC {
+    bool isObjectTypeMatched(const shared_ptr<Common::GIObject> &object, ObjectType type) {
+        return object->getType() == type;
+    }
+
     bool isTruthy(const shared_ptr<Common::GIObject> &object) {
-        if (object->getType() == Common::ObjectType::BOOLEAN) {
+        if (isObjectTypeMatched(object, ObjectType::BOOLEAN)) {
             return static_cast<Common::BooleanObject *>(object.get())->value;
-        } else if (object->getType() == Common::ObjectType::_NULL) {
+        } else if (isObjectTypeMatched(object, ObjectType::_NULL)) {
             return false;
         }
         return true;
     }
+
 
     shared_ptr<Common::GIObject> VM::lastStackElem() {
         return stack[sp];
@@ -33,8 +39,7 @@ namespace GC {
             auto opCode = OpCode(instruction);
             switch (opCode) {
                 case OpCode::Constant: {
-                    int constIndex = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    int constIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     stackPush(constants[constIndex]);
                     break;
@@ -45,8 +50,8 @@ namespace GC {
                 case OpCode::Add: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    if (left->getType() == Common::ObjectType::INTEGER &&
-                        right->getType() == Common::ObjectType::INTEGER) {
+                    if (isObjectTypeMatched(left, ObjectType::INTEGER) &&
+                        isObjectTypeMatched(right, ObjectType::INTEGER)) {
                         auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
                         auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
 
@@ -69,8 +74,8 @@ namespace GC {
                                 break;
                         }
                         stackPush(make_shared<Common::IntegerObject>(result));
-                    } else if (left->getType() == Common::ObjectType::STRING &&
-                               right->getType() == Common::ObjectType::STRING) {
+                    } else if (isObjectTypeMatched(left, Common::ObjectType::STRING) &&
+                               isObjectTypeMatched(right, Common::ObjectType::STRING)) {
                         auto leftValue = static_cast<Common::StringObject *>(left.get())->value;
                         auto rightValue = static_cast<Common::StringObject *>(right.get())->value;
                         if (opCode == OpCode::Add) {
@@ -91,8 +96,8 @@ namespace GC {
                 case OpCode::GreaterThan: {
                     auto right = stackPop();
                     auto left = stackPop();
-                    if (left->getType() == Common::ObjectType::INTEGER &&
-                        right->getType() == Common::ObjectType::INTEGER) {
+                    if (isObjectTypeMatched(left, Common::ObjectType::INTEGER) &&
+                        isObjectTypeMatched(right, Common::ObjectType::INTEGER)) {
                         auto leftValue = static_cast<Common::IntegerObject *>(left.get())->value;
                         auto rightValue = static_cast<Common::IntegerObject *>(right.get())->value;
                         switch (opCode) {
@@ -110,8 +115,8 @@ namespace GC {
                                 break;
                         }
                     } else {
-                        if (left->getType() == Common::ObjectType::BOOLEAN &&
-                            right->getType() == Common::ObjectType::BOOLEAN) {
+                        if (isObjectTypeMatched(left, Common::ObjectType::BOOLEAN) &&
+                            isObjectTypeMatched(right, Common::ObjectType::BOOLEAN)) {
                             auto leftValue = static_cast<Common::BooleanObject *>(left.get())->value;
                             auto rightValue = static_cast<Common::BooleanObject *>(right.get())->value;
                             switch (opCode) {
@@ -137,7 +142,7 @@ namespace GC {
                 }
                 case OpCode::Bang: {
                     auto operand = stackPop();
-                    if (operand->getType() == Common::ObjectType::BOOLEAN) {
+                    if (isObjectTypeMatched(operand, ObjectType::BOOLEAN)) {
                         auto boolObject = static_cast<Common::BooleanObject *>(operand.get());
                         stackPush(make_shared<Common::BooleanObject>(!boolObject->value));
                     } else {
@@ -148,7 +153,7 @@ namespace GC {
                 }
                 case OpCode::Minus: {
                     auto operand = stackPop();
-                    if (operand->getType() != Common::ObjectType::INTEGER) {
+                    if (!isObjectTypeMatched(operand, Common::ObjectType::INTEGER)) {
                         throw VMException{fmt::format("unsupported type for negation: {}",
                                                       magic_enum::enum_name(operand->getType()))};
                     }
@@ -160,13 +165,12 @@ namespace GC {
                     stackPop();
                     break;
                 case OpCode::Jump: {
-                    auto insIndex = readUint16(ip + 1);
+                    auto insIndex = readFirstOperand(opCode, ip);
                     currentFrame()->ip = insIndex - 1;
                     break;
                 }
                 case OpCode::JumpNotTruthy: {
-                    auto insIndex = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    auto insIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto condition = stackPop();
                     if (!isTruthy(condition)) {
@@ -179,23 +183,20 @@ namespace GC {
                     break;
                 }
                 case OpCode::SetGlobal: {
-                    auto globalIndex = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    auto globalIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     globals[globalIndex] = stackPop();
 
                     break;
                 }
                 case OpCode::GetGlobal: {
-                    auto globalIndex = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    auto globalIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     stackPush(globals[globalIndex]);
                     break;
                 }
                 case OpCode::Array: {
-                    auto numElements = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    auto numElements = readFirstOperandAndMoveIP(opCode, ip);
 
                     vector<shared_ptr<Common::GIObject>> elements;
                     for (auto index = 0; index < numElements; index++) {
@@ -206,8 +207,7 @@ namespace GC {
                     break;
                 }
                 case OpCode::Hash: {
-                    auto numElements = readUint16(ip + 1);
-                    currentFrame()->ip += 2;
+                    auto numElements = readFirstOperandAndMoveIP(opCode, ip);
 
                     std::map<Common::HashKey, Common::HashPair> pairs{};
                     for (auto index = 0; index < numElements; index += 2) {
@@ -229,8 +229,8 @@ namespace GC {
                     auto index = stackPop();
                     auto object = stackPop();
 
-                    if (object->getType() == Common::ObjectType::ARRAY &&
-                        index->getType() == Common::ObjectType::INTEGER) {
+                    if (isObjectTypeMatched(object, Common::ObjectType::ARRAY) &&
+                        isObjectTypeMatched(index, Common::ObjectType::INTEGER)) {
                         auto arrayObject = static_cast<Common::ArrayObject *>(object.get());
                         auto indexValue = static_cast<Common::IntegerObject *>(index.get())->value;
 
@@ -241,7 +241,7 @@ namespace GC {
                         auto elem = arrayObject->elements[indexValue];
                         stackPush(elem);
 
-                    } else if (object->getType() == Common::ObjectType::HASH) {
+                    } else if (isObjectTypeMatched(object, Common::ObjectType::HASH)) {
                         auto hashObject = static_cast<Common::HashObject *>(object.get());
                         auto hashKey = index->hash();
                         if (hashObject->pairs.contains(hashKey)) {
@@ -256,8 +256,7 @@ namespace GC {
                     break;
                 }
                 case OpCode::Call: {
-                    auto numArgs = readUint8(ip + 1);
-                    currentFrame()->ip += 1;
+                    auto numArgs = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto callee = stack[sp - 1 - numArgs].get();
                     if (callee->getType() == Common::ObjectType::BUILTIN) {
@@ -279,7 +278,6 @@ namespace GC {
                     auto basePointer = sp - numArgs;
 
                     frameManager.framePush(Frame{*closureObject, basePointer});
-                    sp = basePointer + closureObject->compiledFunctionObject.numLocals;
 
                     break;
                 }
@@ -298,16 +296,14 @@ namespace GC {
                     break;
                 }
                 case OpCode::GetLocal: {
-                    auto localIndex = readUint8(ip + 1);
-                    currentFrame()->ip += 1;
+                    auto localIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto index = currentFrame()->basePointer + int(localIndex);
                     stackPush(stack[index]);
                     break;
                 }
                 case OpCode::SetLocal: {
-                    auto localIndex = readUint8(ip + 1);
-                    currentFrame()->ip += 1;
+                    auto localIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto index = currentFrame()->basePointer + int(localIndex);
 
@@ -315,8 +311,7 @@ namespace GC {
                     break;
                 }
                 case OpCode::GetBuiltin: {
-                    auto localIndex = readUint8(ip + 1);
-                    currentFrame()->ip += 1;
+                    auto localIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto index = currentFrame()->basePointer + int(localIndex);
 
@@ -325,16 +320,15 @@ namespace GC {
                     break;
                 }
                 case OpCode::Closure: {
-                    auto constIndex = readUint16(ip + 1);
-                    auto numFree = readUint8(ip + 3);
-                    currentFrame()->ip += 3;
+                    auto operands = readOperandsAndMoveIP(opCode, ip);
+                    auto constIndex = operands[0];
+                    auto numFree = operands[1];
 
                     closurePush(constIndex, numFree);
                     break;
                 }
                 case OpCode::GetFree: {
-                    auto freeIndex = readUint8(ip + 1);
-                    currentFrame()->ip += 1;
+                    auto freeIndex = readFirstOperandAndMoveIP(opCode, ip);
 
                     auto currentClosure = currentFrame()->closureObject;
                     stackPush(currentClosure.freeObjects[freeIndex]);
@@ -374,7 +368,14 @@ namespace GC {
         if (sp < 0) {
             throw VMException{"invalid negative stack sp"};
         }
-        stack[sp] = object;
+        if (sp > stack.size()) {
+            throw VMException("invalid sp size");
+        }
+        if (sp == stack.size()) {
+            stack.push_back(object);
+        } else {
+            stack[sp] = object;
+        }
         sp++;
     }
 
@@ -384,16 +385,21 @@ namespace GC {
         return stack[sp];
     }
 
-    int VM::readUint16(int index) {
-        auto instructions = getInstructions();
-        Instruction ins{instructions.begin() + index, instructions.end()};
-        return code.readUint16(ins);
+    int VM::readFirstOperand(GC::OpCode opCode, int ip) {
+        return code.readSingleInstruction(opCode, getInstructions(), ip + 1);
     }
 
-    int VM::readUint8(int index) {
-        auto instructions = getInstructions();
-        Instruction ins{instructions.begin() + index, instructions.end()};
-        return code.readUint8(ins);
+    int VM::readFirstOperandAndMoveIP(OpCode opCode, int ip) {
+        int index = readFirstOperand(opCode, ip);
+        currentFrame()->ip += code.definitions[opCode].operandWidths[0];
+        return index;
+    }
+
+
+    vector<int> VM::readOperandsAndMoveIP(OpCode opCode, int ip) {
+        auto ins = code.readInstructions(opCode, getInstructions(), ip + 1);
+        currentFrame()->ip += code.getOperandsSize(opCode);
+        return ins;
     }
 
 }

@@ -28,7 +28,6 @@ namespace Common {
 
         void readChar();
 
-
         unsigned int peekChar();
 
         std::string readIdentifier();

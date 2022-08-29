@@ -16,7 +16,7 @@ namespace GC {
 
     struct Frame {
         Frame(ClosureObject closureObject, int basePointer, int ip = -1) :
-                closureObject{closureObject}, ip(ip), basePointer(basePointer) {}
+                closureObject{closureObject}, ip{ip}, basePointer(basePointer) {}
 
         ClosureObject closureObject;
         int ip;
